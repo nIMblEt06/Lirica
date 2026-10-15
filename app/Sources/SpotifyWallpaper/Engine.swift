@@ -208,6 +208,7 @@ final class Engine {
             MainActor.assumeIsolated {
                 Trace.log("space changed: reapplying still wallpaper")
                 self?.setter.reapply()
+                self?.layers.values.forEach { $0.spaceChanged() }
             }
         }
         NotificationCenter.default.addObserver(

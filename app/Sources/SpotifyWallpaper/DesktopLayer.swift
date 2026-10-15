@@ -58,6 +58,22 @@ final class DesktopLayer: NSObject, WKNavigationDelegate {
         }
     }
 
+    /// A Space change can leave the layer paused and unpainted until macOS reports its occlusion again, which can take
+    /// as long as the transition. Bring it forward now and re-check while the transition settles.
+    func spaceChanged() {
+        guard visible else { return }
+        window.orderFrontRegardless()
+        for delay in [0.15, 0.5, 1.2] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                MainActor.assumeIsolated {
+                    guard let self, self.visible else { return }
+                    self.window.orderFrontRegardless()
+                    self.occlusionChanged()
+                }
+            }
+        }
+    }
+
     private func occlusionChanged() {
         guard loaded, visible else { return }
         let hidden = !window.occlusionState.contains(.visible)
