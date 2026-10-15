@@ -4,9 +4,8 @@ import WebKit
 /// A live, animated copy of the template on one screen, drawn just above the real wallpaper and below the
 /// desktop icons, on every Space. The real wallpaper underneath holds a still of the same song.
 ///
-/// While the pointer is over one of the template's controls (`data-control`), the layer briefly takes mouse
-/// clicks (`ignoresMouseEvents` off) so the control can be clicked; everywhere else clicks fall through to the
-/// desktop as usual.
+/// Each template control (`data-control`) gets a separate clear hit window above Finder's icons but below all app
+/// windows. The full-screen layer itself always ignores input and remains at the genuine wallpaper level.
 @MainActor
 final class DesktopLayer: NSObject, WKNavigationDelegate {
     let frame: CGRect
@@ -18,16 +17,15 @@ final class DesktopLayer: NSObject, WKNavigationDelegate {
     private var full: String?
     private var clock: String?
     private var visible = false
-    /// The rects (in view coordinates) of the template's current `data-control` elements; sent by the runtime.
-    private var controlRects: [CGRect] = []
-    private var interactive = false
+    /// The template's current `data-control` elements in view coordinates; sent by the runtime.
+    private var controlRegions: [WallpaperControlRegion] = []
+    private var controlPanels: [WallpaperControlPanel] = []
+    private var controlsEnabled = false
+    private var controlGestureActive = false
+    private var controlPanelsNeedRebuild = false
 
-    /// Called when the controls on the page change, so the app can re-check its pointer watcher.
-    var onControlsChanged: (() -> Void)?
     /// True while the layer is on screen.
     var isShown: Bool { visible }
-    /// True while the page has controls the pointer can act on.
-    var hasControls: Bool { !controlRects.isEmpty }
 
     init(screen: NSScreen, configuration: WKWebViewConfiguration) {
         frame = screen.frame
@@ -47,9 +45,8 @@ final class DesktopLayer: NSObject, WKNavigationDelegate {
         window.hidesOnDeactivate = false
         window.isFloatingPanel = false
         window.becomesKeyOnlyIfNeeded = true
-        // `isFloatingPanel = false` resets an NSPanel's level to `.normal`, so the desktop level must be
-        // assigned after that property. With the opposite order this full-screen panel was actually at layer 0
-        // and `orderFrontRegardless()` covered the focused app whenever a track or Space changed.
+        // `isFloatingPanel = false` resets an NSPanel to `.normal`; assign this afterwards so the full-screen
+        // layer really stays behind applications. Controls use separate desktop-icon-level hit windows.
         window.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopWindow)))
         webView.autoresizingMask = [.width, .height]
         webView.navigationDelegate = self
@@ -85,7 +82,7 @@ final class DesktopLayer: NSObject, WKNavigationDelegate {
         guard newURL != url else { return }
         url = newURL
         loaded = false
-        setControlRects([])  // the old page's controls are gone until the new one reports its own
+        setControlRegions([])  // the old page's controls are gone until the new one reports its own
         webView.load(URLRequest(url: newURL))
     }
 
@@ -109,30 +106,74 @@ final class DesktopLayer: NSObject, WKNavigationDelegate {
 
     // MARK: controls (data-control in templates)
 
-    /// The runtime reports where the page's controls are; the app checks the pointer against these rects.
-    func setControlRects(_ rects: [CGRect]) {
-        guard rects != controlRects else { return }
-        controlRects = rects
-        onControlsChanged?()
+    /// The runtime reports where the page's controls are; rebuild their small native hit windows.
+    func setControlRegions(_ regions: [WallpaperControlRegion]) {
+        guard regions != controlRegions else { return }
+        controlRegions = regions
+        Trace.log("wallpaper controls: \(regions.count) hit regions")
+        rebuildControlPanels()
     }
 
-    /// True when the pointer (in screen coordinates) is over one of the controls.
-    func isPointerOverControl(_ pointer: NSPoint) -> Bool {
-        guard isShown, !controlRects.isEmpty, window.occlusionState.contains(.visible) else { return false }
-        let p = CGPoint(x: pointer.x - frame.minX, y: frame.maxY - pointer.y)
-        return controlRects.contains { $0.insetBy(dx: -5, dy: -5).contains(p) }
+    func setControlInteractionEnabled(_ enabled: Bool) {
+        guard controlsEnabled != enabled else { return }
+        controlsEnabled = enabled
+        rebuildControlPanels()
     }
 
-    /// Lets the layer take clicks (while the pointer is over a control) or pass them through to the desktop.
-    func setInteractive(_ on: Bool) {
-        guard interactive != on else { return }
-        interactive = on
-        window.ignoresMouseEvents = !on
+    private func rebuildControlPanels() {
+        guard !controlGestureActive else {
+            controlPanelsNeedRebuild = true
+            return
+        }
+        controlPanels.forEach { $0.close() }
+        controlPanels.removeAll()
+        controlPanelsNeedRebuild = false
+        guard controlsEnabled, loaded, visible else { return }
+
+        for region in controlRegions {
+            let bounds = CGRect(origin: .zero, size: frame.size)
+            let hit = region.rect.insetBy(dx: -5, dy: -5).intersection(bounds)
+            guard !hit.isNull, !hit.isEmpty else { continue }
+            let panelFrame = CGRect(
+                x: frame.minX + hit.minX,
+                y: frame.maxY - hit.maxY,
+                width: hit.width,
+                height: hit.height
+            )
+            let panel = WallpaperControlPanel(frame: panelFrame) { [weak self] type, point, deltaY in
+                guard let self else { return }
+                if type == "down" {
+                    self.controlGestureActive = true
+                    Trace.log("wallpaper control: mouse down from desktop hit window")
+                }
+                self.sendControlEvent(type, at: point, deltaY: deltaY)
+                if type == "up" {
+                    self.controlGestureActive = false
+                    if self.controlPanelsNeedRebuild {
+                        DispatchQueue.main.async { [weak self] in self?.rebuildControlPanels() }
+                    }
+                }
+            }
+            panel.orderFrontRegardless()
+            controlPanels.append(panel)
+        }
+        if !controlPanels.isEmpty {
+            Trace.log("wallpaper controls: \(controlPanels.count) desktop hit windows active")
+        }
+    }
+
+    /// Sends a native hit-window event into the page's normal control handlers.
+    func sendControlEvent(_ type: String, at pointer: NSPoint, deltaY: Double = 0) {
+        guard loaded, visible else { return }
+        let x = pointer.x - frame.minX, y = frame.maxY - pointer.y
+        let event = jsonString(["type": type, "x": x, "y": y, "deltaY": deltaY])
+        webView.evaluateJavaScript("window.__sw && __sw.controlEvent(\(event))")
     }
 
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
         NSLog("SpotifyWallpaper: the live layer's web process ended; reloading it")
         loaded = false
+        setControlRegions([])
         webView.reload()  // didFinish then resends the state and clock
     }
 
@@ -147,6 +188,7 @@ final class DesktopLayer: NSObject, WKNavigationDelegate {
         visible = true
         Trace.log("wallpaper shown: \(frame)")
         window.orderFrontRegardless()
+        rebuildControlPanels()
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = 0.6
             window.animator().alphaValue = 1
@@ -156,6 +198,8 @@ final class DesktopLayer: NSObject, WKNavigationDelegate {
     func hide() {
         guard visible else { return }
         visible = false
+        controlGestureActive = false
+        rebuildControlPanels()
         Trace.log("wallpaper hidden: \(frame)")
         NSAnimationContext.runAnimationGroup({ ctx in
             ctx.duration = 0.6
@@ -167,6 +211,11 @@ final class DesktopLayer: NSObject, WKNavigationDelegate {
         })
     }
 
-    func close() { window.close() }
+    func close() {
+        controlGestureActive = false
+        controlPanels.forEach { $0.close() }
+        controlPanels.removeAll()
+        window.close()
+    }
 
 }

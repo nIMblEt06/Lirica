@@ -136,7 +136,7 @@ runs on each beat with `{ strength, bpm, last, level }`, and `Wallpaper.beat` al
 
 ## Playback controls
 
-Mark an element with `data-control` and it becomes a real, working control for the Spotify app:
+Mark an element with `data-control` and it becomes a real control for the player Lirica is following:
 
 ```html
 <progress-bar data-control="seek" data-show="params.controls"></progress-bar>
@@ -150,12 +150,12 @@ Mark an element with `data-control` and it becomes a real, working control for t
 | `playPause` | a click toggles play/pause |
 | `next` / `previous` | a click skips a track |
 | `seek` | a click or drag across the element seeks to that point in the song |
-| `volume` | scrolling over the element (or anything inside it) steps the volume like the volume keys |
+| `volume` | clicking or dragging horizontally sets volume; scrolling steps it like the volume keys |
 
-On the desktop the live layer sits behind everything and normally gets no clicks at all. The app watches the
-pointer and lets the page take a click only while it's over one of these elements — everywhere else your icons,
-right-clicks and drags behave as usual, and the app never activates or takes the keyboard. In the preview window
-and the template builder the controls are simply clickable.
+On the desktop the live layer sits behind Finder's icons. Each control gets a small clear native hit window just
+above those icons but below every application window, so a control hidden under another app receives nothing. The
+rest of the desktop remains untouched, and Lirica never activates or takes the keyboard. No privacy permission is
+needed. In the preview window and the template builder the controls are simply clickable.
 
 A few things worth knowing:
 
@@ -167,9 +167,9 @@ A few things worth knowing:
   `Wallpaper.on("control", ({ command, value }) => { … })`.
 - A control dims while it's held (`.sw-pressed`) and bounces when clicked (`.sw-tap`); style those classes to give
   your own reaction. Both use the `scale` property, so they stack with your transforms.
-- The track and the controls follow whichever player is playing, Spotify or Apple Music.
-- Controls never launch Spotify (the wallpaper isn't on screen unless Spotify is running) and can be switched
-  off app-wide under **Wallpaper Controls** in the menu.
+- The track and controls follow one player—Spotify, Apple Music, YouTube Music, a browser or another app on the
+  Mac's Now Playing feed. Controls never launch or switch players. Volume is unavailable for Now Playing apps.
+- Controls can be switched off app-wide under **Wallpaper controls** in Settings.
 
 ## Animation
 

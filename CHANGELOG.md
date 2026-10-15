@@ -6,16 +6,18 @@ All notable changes to Lirica. Versions follow [semantic versioning](https://sem
 
 ### Changed
 - **The app is now Lirica.** Your templates, settings and history stay where they were.
+- **Wallpaper controls now live in Settings.** Small transparent hit windows sit over visible controls at Finder's
+  desktop-icon level, so they receive normal clicks while every application window remains safely above them.
 
 ### Added
-- **Control Spotify from the wallpaper.** Templates can now put real playback controls on your desktop: click
+- **Control playback from the wallpaper.** Templates can now put real playback controls on your desktop: click
   play/pause and skip, drag a progress bar to seek. In **Classic** the iPod's click wheel works — scroll it for the
-  volume, click its edges to skip and its centre to play or pause — and **Minimal**, **Glow** and **Card** carry
+  volume, click its edges to skip and its centre to play or pause — and **Minimal**, **Glow** and **Classic** carry
   transports and a seekable progress bar.
 - Clicks reach the page only while the pointer is over a control of a template that has them, so icons, right-clicks
   and drags on the rest of the desktop behave exactly as before; the wallpaper never activates and never takes the
   keyboard. Templates choose what to offer with `data-control="playPause | next | previous | seek | volume"` — the
-  template guide has the details — and it can be turned off app-wide under **Wallpaper Controls** in the menu.
+  template guide has the details — and it can be turned off app-wide under **Wallpaper controls** in Settings.
 - **Apple Music works too.** The wallpaper follows whichever player is playing, Spotify or Apple Music, and the
   controls go to that one. The first time, macOS asks whether Lirica may control Music.
 - **Other music apps:** the wallpaper also follows YouTube Music, browsers and any other app that shows in the Mac's

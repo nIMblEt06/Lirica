@@ -61,8 +61,8 @@ progress-bar .fill { position: absolute; inset: 0; background: currentColor; bor
 .sw-live progress-bar .fill { will-change: transform; }
 
 /* Playback controls: data-control="playPause|next|previous|seek|volume" elements are clickable on the desktop
-   wallpaper (and in the preview). Clicks only reach them when the pointer is over the element, so the rest of
-   the desktop keeps working; give them a cursor and no text selection. */
+   wallpaper (and in the preview). Native hit windows cover only their rectangles, so the rest of the desktop keeps
+   working; give them a cursor and no text selection. */
 [data-control] { cursor: pointer; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
 [data-control]:active { cursor: default; }
 
@@ -71,7 +71,9 @@ progress-bar .fill { position: absolute; inset: 0; background: currentColor; bor
 [data-control="playPause"] { display: grid; place-items: center; }
 [data-control="playPause"] > svg { grid-area: 1 / 1; transition: opacity 0.3s ease, transform 0.38s cubic-bezier(0.2, 0.8, 0.2, 1); }
 html:not(.is-playing) [data-control="playPause"] > .i-pause,
-html.is-playing [data-control="playPause"] > .i-play { opacity: 0; transform: scale(0.55); }
+html.is-playing [data-control="playPause"] > .i-play { opacity: 0; transform: scale(0.55) rotate(-12deg); }
+html:not(.is-playing) [data-control="playPause"] > .i-play,
+html.is-playing [data-control="playPause"] > .i-pause { opacity: 1; transform: scale(1) rotate(0deg); }
 
 /* Press feedback: a control shrinks and dims while it's held, then bounces back with a flash when clicked. These
    use the `scale` property, so they stack with any transform a template sets on the element. */

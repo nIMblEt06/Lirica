@@ -74,7 +74,7 @@ with sliders or rewrite completely.
 - **Controls on the wallpaper itself:** templates can put real controls on your desktop — click play/pause and
   skip, drag a progress bar to seek, and in Classic scroll the iPod's click wheel for the volume. Clicks reach the
   page only while the pointer is over a control, so icons, right-clicks and drags on the rest of the desktop behave
-  exactly as before. Turn it off any time under **Wallpaper Controls** in the menu.
+  exactly as before. Turn it off any time under **Wallpaper controls** in Settings.
 
 <p align="center"><img src="docs/screenshots/customize.jpg" width="85%" alt="The Customize window"></p>
 
@@ -91,7 +91,8 @@ See what changed in each version in the **[changelog](CHANGELOG.md)**, or in the
 4. When macOS asks whether Lirica may **control Spotify** (and later **Music**, if you use Apple Music), click
    **OK**. That's how it reads what's playing — and how the controls on your wallpaper talk to the player.
 
-Requires macOS 14 Sonoma or later and the Spotify desktop app. It runs natively on Apple Silicon and Intel.
+Requires macOS 14 Sonoma or later. Spotify and Apple Music work directly; browsers, YouTube Music and other
+players work through the Mac's Now Playing feed. Lirica runs natively on Apple Silicon and Intel.
 
 **Updates install themselves** from v1.2.0 on. The app checks this repo's releases at launch and every 6 hours,
 verifies the download (GitHub's SHA-256 checksum, the app's identifier and its code signature), swaps it in and
@@ -102,20 +103,16 @@ every Space rather than set one Space at a time.
 
 ## Use
 
-Everything is in the ♪ menu bar icon:
+Everyday actions are in the ♪ menu bar icon; app-wide options are in **Settings**:
 
 | Menu item | What it does |
 |---|---|
 | **Open Lirica… (⌘O)** | Home: a live preview with each template's settings, a shelf of recent and favourite templates, the full gallery, a template per display, the History Wall, and lyrics source and timing. Also opens when you open the app again from Finder or the Dock |
-| **Template Builder…** | Design a new template visually, no code |
-| **Lyrics** | Nudge this song's timing earlier or later (remembered per song). Pick the source or search again in Home's Lyrics tab |
-| **Refresh Rate** | Display maximum, 60, 30 or 15 fps for the animation. Lyric timing is exact at any rate |
+| **Quick Switcher… (⌃⌥⌘W)** | Switch the template on the current display without opening Home |
+| **Share Lyric Card (⌃⌥⌘L)** | Save and copy the current lyric in the active template's style |
+| **Focus Mode (⌃⌥⌘F)** | Hide or restore lyrics on every display |
 | **Pause Wallpaper** | Put your normal wallpaper back until you resume |
-| **Wallpaper Controls** | Let templates' controls (play/pause, skip, seek, volume) work right on the wallpaper |
-| **Open Templates Folder** | Where your own templates live |
-| **Launch at Login** | Start automatically |
-| **What's New…** | The changelog; it also opens once after each update |
-| **Check for Updates…** | Look for a new release now. Turn **Automatically Install Updates** on or off |
+| **Settings… (⌘,)** | Playback, privacy, templates, history, updates and launch options |
 
 ## Make your own templates
 

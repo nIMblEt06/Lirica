@@ -478,13 +478,13 @@
   // ---------- playback controls ----------
   // Elements with data-control control the real Spotify: playPause | next | previous | seek | volume.
   // A click sends the command to the app; seek (and volume) also follow a drag, volume follows the wheel.
-  // The app lets clicks through to the page only while the pointer is over one of these elements, so the
-  // runtime keeps it told where they are (reportControlRects, below) and nothing intercepts the rest of
-  // the desktop.
+  // The app places a tiny clear native hit window over each of these elements, below application windows. The
+  // runtime reports their rectangles below and receives native events through controlEvent().
 
   function sendControl(command, value) {
     const handler = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.swCommand;
     if (handler) handler.postMessage(value == null ? { command } : { command, value });
+    optimisticControl(command, value);
     emit("control", { command, value });
   }
   Wallpaper.control = sendControl;
@@ -530,9 +530,11 @@
   }
   document.addEventListener("pointerdown", (e) => {
     const el = controlOf(e), mode = el && el.dataset.control;
-    if (mode !== "seek" || e.button !== 0) return;
+    if ((mode !== "seek" && mode !== "volume") || e.button !== 0) return;
     e.preventDefault();
-    if (el.setPointerCapture) el.setPointerCapture(e.pointerId);
+    // Native wallpaper events are replayed as synthetic pointer events; WebKit only permits capture for a real
+    // active pointer, so capture is best-effort. `scrub` below already keeps the drag alive across the page.
+    try { if (el.setPointerCapture) el.setPointerCapture(e.pointerId); } catch (_) {}
     scrub = { mode, el, id: e.pointerId, last: 0, value: null };
     scrubTo(e);
   });
@@ -563,21 +565,55 @@
     }, 150);
   }, { passive: false });
 
-  /** Tell the app where the controls are, so it knows where the pointer may take clicks from the desktop. */
+  // A genuine wallpaper-level macOS window never receives mouse events. Small desktop-icon-level hit windows replay
+  // their ordinary AppKit events into the page through this function; no global monitor or privacy permission.
+  let nativeControlTarget = null;
+  function nativeControlEvent(e) {
+    const atPoint = document.elementFromPoint(+e.x || 0, +e.y || 0);
+    const control = atPoint && atPoint.closest ? atPoint.closest("[data-control]") : null;
+    const pointer = (name, target, buttons) => target && target.dispatchEvent(new PointerEvent(name, {
+      bubbles: true, cancelable: true, composed: true, pointerId: 7301, pointerType: "mouse", isPrimary: true,
+      button: 0, buttons, clientX: +e.x || 0, clientY: +e.y || 0,
+    }));
+    if (e.type === "down") {
+      nativeControlTarget = control;
+      pointer("pointerdown", control, 1);
+    } else if (e.type === "drag") {
+      pointer("pointermove", nativeControlTarget || control, 1);
+    } else if (e.type === "up") {
+      const target = nativeControlTarget;
+      pointer("pointerup", target || control, 0);
+      if (target && target === control) target.dispatchEvent(new MouseEvent("click", {
+        bubbles: true, cancelable: true, composed: true, button: 0, buttons: 0,
+        clientX: +e.x || 0, clientY: +e.y || 0,
+      }));
+      nativeControlTarget = null;
+    } else if (e.type === "wheel" && control) {
+      control.dispatchEvent(new WheelEvent("wheel", {
+        bubbles: true, cancelable: true, composed: true, deltaMode: WheelEvent.DOM_DELTA_PIXEL,
+        deltaY: +e.deltaY || 0, clientX: +e.x || 0, clientY: +e.y || 0,
+      }));
+    }
+  }
+
+  /** Tell the app where to place the small native hit windows. */
   let controlRectSig = "";
   function reportControlRects() {
     if (!live) return;
     const handler = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.swControls;
     if (!handler) return;
-    const rects = [];
+    const regions = [];
     for (const el of document.querySelectorAll("[data-control]")) {
       const r = el.getBoundingClientRect();
-      if (r.width > 0 && r.height > 0) rects.push([+r.left.toFixed(1), +r.top.toFixed(1), +r.width.toFixed(1), +r.height.toFixed(1)]);
+      if (r.width > 0 && r.height > 0) regions.push({
+        x: +r.left.toFixed(1), y: +r.top.toFixed(1), width: +r.width.toFixed(1), height: +r.height.toFixed(1),
+        command: el.dataset.control || "",
+      });
     }
-    const sig = JSON.stringify(rects);
+    const sig = JSON.stringify(regions);
     if (sig === controlRectSig) return;
     controlRectSig = sig;
-    handler.postMessage({ rects });
+    handler.postMessage({ regions });
   }
   addEventListener("resize", reportControlRects);
 
@@ -685,6 +721,32 @@
     return derive({ ...live, track: { ...live.track, position: pos }, lyrics: { ...live.lyrics, index: indexAt(lines, pos) } });
   }
 
+  /** Playback state changes more often than full template state. Keep glyphs, labels and CSS motion in sync. */
+  function applyPlaybackState(ctx) {
+    const playing = !!ctx.track.isPlaying;
+    document.documentElement.classList.toggle("is-playing", playing);
+    for (const el of document.querySelectorAll('[data-control="playPause"]')) {
+      el.setAttribute("aria-label", playing ? "Pause" : "Play");
+    }
+  }
+
+  /** Make a control feel immediate; the next native clock update remains authoritative and corrects any failure. */
+  function optimisticControl(command, value) {
+    if (!live || paused) return;
+    if (command === "playPause") {
+      const position = livePosition();
+      live.track = { ...live.track, position, isPlaying: !live.track.isPlaying, stamp: Date.now() };
+      liveUpdate();
+    } else if (command === "seek" && Number.isFinite(value) && live.track.duration > 0) {
+      live.track = {
+        ...live.track,
+        position: clamp(value, 0, 1) * live.track.duration,
+        stamp: Date.now(),
+      };
+      liveUpdate();
+    }
+  }
+
   function restartEnterAnimations() {
     for (const el of document.querySelectorAll("[data-animate]")) {
       el.classList.remove("sw-enter");
@@ -697,6 +759,7 @@
   function liveUpdate() {
     if (!live || paused) return;
     const ctx = liveContext();
+    applyPlaybackState(ctx);
     const lineChanged = ctx.lyrics.index !== liveIdx;
     if (liveDirty || lineChanged) {
       const firstForTrack = liveDirty;
@@ -796,6 +859,7 @@
         if (!live || paused) return;
         const ctx = liveContext();
         Wallpaper.ctx = ctx;
+        applyPlaybackState(ctx);
         applyBindings(ctx);  // elapsed time, clock
         momentClasses(ctx);  // the time of day moves on
         reportControlRects();  // drift of animated controls
@@ -858,7 +922,7 @@
     requestAnimationFrame(beatPulse);
   }
 
-  window.__sw = { render: schedule, live: startLive, clock: setClock, pause: setPaused, beat: onBeat };
+  window.__sw = { render: schedule, live: startLive, clock: setClock, pause: setPaused, beat: onBeat, controlEvent: nativeControlEvent };
   // The Customize window's preview talks over postMessage.
   window.addEventListener("message", (e) => {
     const m = e.data || {};

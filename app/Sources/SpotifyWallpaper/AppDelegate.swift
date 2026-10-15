@@ -192,8 +192,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         focus.keyEquivalentModifierMask = ctrlOptCmd
         focus.state = manualFocus ? .on : .off
         add(menu, engine.paused ? "Resume Wallpaper" : "Pause Wallpaper", #selector(togglePause), "")
-        let controls = add(menu, "Wallpaper Controls", #selector(toggleWallpaperControls), "")
-        controls.state = engine.controlsEnabled ? .on : .off
         menu.addItem(.separator())
         if let status = updater.status {
             let note = NSMenuItem(title: status, action: nil, keyEquivalent: "")
@@ -254,8 +252,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func togglePause() { engine.paused.toggle() }
-
-    @objc private func toggleWallpaperControls() { engine.controlsEnabled.toggle() }
 
     @objc private func openTemplatesFolder() { NSWorkspace.shared.open(paths.userTemplates) }
 
@@ -342,6 +338,7 @@ extension AppDelegate {
             "beatSync": engine.beatSync,
             "musicPriority": MusicProvider.defaultProvider.rawValue,
             "otherPlayers": engine.otherPlayersEnabled,
+            "wallpaperControls": engine.controlsEnabled,
             "shareFormat": shareCard.format.rawValue,
             "keepHistory": history.enabled,
             "historyCount": history.entries.count,
@@ -363,6 +360,7 @@ extension AppDelegate {
         case "beatSync": engine.beatSync = on
         case "musicPriority": if let raw = value as? String, let p = MusicProvider(rawValue: raw) { MusicProvider.defaultProvider = p }
         case "otherPlayers": engine.otherPlayersEnabled = on
+        case "wallpaperControls": engine.controlsEnabled = on
         case "shareFormat": if let raw = value as? String, let f = ShareCard.Format(rawValue: raw) { shareCard.format = f }
         case "keepHistory": history.enabled = on
         case "autoUpdate":
