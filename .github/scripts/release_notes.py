@@ -16,5 +16,5 @@ else:
     log = subprocess.run(["git", "log", "--no-merges", "--pretty=format:- %s", rng], capture_output=True, text=True).stdout
     print("### Changes\n" + (log.strip() or "- Maintenance update"))
 
-print("\n---\nInstalled copies update automatically. New installs: download the zip, move the app to Applications, "
-      "and right-click → Open the first time.")
+print("\n---\nInstalled copies update automatically. New installs: open the disk image and drag Lirica into "
+      "Applications.")

@@ -1,14 +1,17 @@
 import AppKit
 import CryptoKit
 
-/// Updates the app from this repo's GitHub releases: checks the latest release, downloads its zip, verifies it
-/// (GitHub's SHA-256 digest, same bundle identifier, valid code signature), swaps it into place and relaunches.
+/// Updates the app from this repo's GitHub releases: checks the latest release, downloads its disk
+/// image (or the zip older releases shipped), verifies it (GitHub's SHA-256 digest when available,
+/// same bundle identifier, valid code signature), swaps it into place and relaunches.
 @MainActor
 final class Updater {
-    static let repo = "shashvat1965/spotify-wallpaper"
+    static let repo = "shashvat1965/Lirica"
     private static let checkInterval: TimeInterval = 6 * 3600
+    private static let retryInterval: TimeInterval = 15 * 60
 
     private var busy = false
+    private var retry: Task<Void, Never>?
     var onStatusChange: (() -> Void)?
     private(set) var status: String? { didSet { onStatusChange?() } }
 
@@ -53,6 +56,17 @@ final class Updater {
             status = nil
             if userInitiated { alert("Couldn't update", error.localizedDescription) }
             NSLog("SpotifyWallpaper: update failed: \(error)")
+            // Offline, or GitHub hiccuped: try again soon instead of waiting another six hours.
+            if !userInitiated { scheduleRetry() }
+        }
+    }
+
+    private func scheduleRetry() {
+        retry?.cancel()
+        retry = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(Self.retryInterval))
+            guard !Task.isCancelled else { return }
+            await self?.check(userInitiated: false)
         }
     }
 
@@ -62,9 +76,19 @@ final class Updater {
         let version: String
         let asset: URL
         let sha256: String?
+        var isDiskImage: Bool { asset.pathExtension.lowercased() == "dmg" }
     }
 
+    /// The release to update to. The API is asked first because it also reports the asset's SHA-256
+    /// digest — but anonymous API requests are limited to 60 per hour per IP, a budget that shared
+    /// addresses (VPNs, proxies) often exhaust, so the releases page is the fallback. It has no
+    /// such limit, and /releases/latest redirects to the newest tag.
     private func latestRelease() async throws -> Release {
+        if let release = try? await releaseFromAPI() { return release }
+        return try await releaseFromWebsite()
+    }
+
+    private func releaseFromAPI() async throws -> Release {
         var req = URLRequest(url: URL(string: "https://api.github.com/repos/\(Self.repo)/releases/latest")!, timeoutInterval: 15)
         req.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
         req.setValue("SpotifyWallpaper/\(currentVersion)", forHTTPHeaderField: "User-Agent")
@@ -72,13 +96,53 @@ final class Updater {
         guard (response as? HTTPURLResponse)?.statusCode == 200,
               let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let tag = json["tag_name"] as? String,
-              let assets = json["assets"] as? [[String: Any]],
-              let zip = assets.first(where: { ($0["name"] as? String)?.hasSuffix(".zip") == true }),
-              let urlString = zip["browser_download_url"] as? String, let url = URL(string: urlString),
-              url.scheme == "https", url.host == "github.com"
-        else { throw UpdateError("The latest release doesn't have a downloadable app.") }
-        let digest = (zip["digest"] as? String).flatMap { $0.hasPrefix("sha256:") ? String($0.dropFirst(7)) : nil }
-        return Release(version: tag.trimmingCharacters(in: CharacterSet(charactersIn: "vV")), asset: url, sha256: digest)
+              let assets = json["assets"] as? [[String: Any]]
+        else { throw UpdateError("GitHub didn't return a release.") }
+        let candidates = assets.compactMap { asset -> (name: String, url: URL, sha256: String?)? in
+            guard let name = asset["name"] as? String,
+                  let urlString = asset["browser_download_url"] as? String,
+                  let url = URL(string: urlString), url.scheme == "https", url.host == "github.com"
+            else { return nil }
+            let digest = (asset["digest"] as? String).flatMap { $0.hasPrefix("sha256:") ? String($0.dropFirst(7)) : nil }
+            return (name, url, digest)
+        }
+        guard let asset = Self.preferredAsset(candidates) else {
+            throw UpdateError("The latest release doesn't have a downloadable app.")
+        }
+        return Release(version: Self.version(fromTag: tag), asset: asset.url, sha256: asset.sha256)
+    }
+
+    private func releaseFromWebsite() async throws -> Release {
+        var req = URLRequest(url: URL(string: "https://github.com/\(Self.repo)/releases/latest")!, timeoutInterval: 15)
+        req.httpMethod = "HEAD"
+        let (_, response) = try await URLSession.shared.data(for: req)
+        guard let finalURL = response.url, finalURL.path.contains("/releases/tag/") else {
+            throw UpdateError("Couldn't reach GitHub to check for updates.")
+        }
+        let tag = finalURL.lastPathComponent
+        let version = Self.version(fromTag: tag)
+        // New releases ship a disk image; the zip names are the ones older releases used.
+        let names = ["Lirica-\(version).dmg", "Lirica-\(version).zip", "Spotify-Wallpaper-\(version).zip"]
+        for name in names {
+            guard let url = URL(string: "https://github.com/\(Self.repo)/releases/download/\(tag)/\(name)") else { continue }
+            var head = URLRequest(url: url, timeoutInterval: 15)
+            head.httpMethod = "HEAD"
+            if let (_, resp) = try? await URLSession.shared.data(for: head),
+               (resp as? HTTPURLResponse)?.statusCode == 200 {
+                return Release(version: version, asset: url, sha256: nil)
+            }
+        }
+        throw UpdateError("The latest release doesn't have a downloadable app.")
+    }
+
+    private static func preferredAsset(_ assets: [(name: String, url: URL, sha256: String?)])
+        -> (name: String, url: URL, sha256: String?)? {
+        assets.first { $0.name.lowercased().hasSuffix(".dmg") }
+            ?? assets.first { $0.name.lowercased().hasSuffix(".zip") }
+    }
+
+    private static func version(fromTag tag: String) -> String {
+        tag.trimmingCharacters(in: CharacterSet(charactersIn: "vV"))
     }
 
     static func isNewer(_ a: String, than b: String) -> Bool {
@@ -114,16 +178,33 @@ final class Updater {
         // download + verify the archive
         let (download, response) = try await URLSession.shared.download(from: release.asset)
         guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw UpdateError("The download failed.") }
-        let zip = work.appendingPathComponent("update.zip")
-        try fm.moveItem(at: download, to: zip)
+        let file = work.appendingPathComponent(release.asset.lastPathComponent)
+        try fm.moveItem(at: download, to: file)
         if let expected = release.sha256 {
-            let actual = SHA256.hash(data: try Data(contentsOf: zip)).map { String(format: "%02x", $0) }.joined()
+            let actual = SHA256.hash(data: try Data(contentsOf: file)).map { String(format: "%02x", $0) }.joined()
             guard actual == expected.lowercased() else { throw UpdateError("The download didn't match its checksum.") }
         }
 
-        // unpack + verify the app
-        try run("/usr/bin/ditto", ["-x", "-k", zip.path, work.path])
-        guard let newApp = try fm.contentsOfDirectory(at: work, includingPropertiesForKeys: nil).first(where: { $0.pathExtension == "app" }),
+        // unpack: mount the disk image, or expand the zip older releases shipped
+        let unpacked: URL
+        var mounted: URL?
+        defer {
+            if let mounted { try? run("/usr/bin/hdiutil", ["detach", mounted.path, "-quiet"]) }
+        }
+        if release.isDiskImage {
+            let mount = work.appendingPathComponent("mnt")
+            try fm.createDirectory(at: mount, withIntermediateDirectories: true)
+            try run("/usr/bin/hdiutil", ["attach", file.path, "-nobrowse", "-noautoopen", "-readonly", "-mountpoint", mount.path])
+            unpacked = mount
+            mounted = mount
+        } else {
+            try run("/usr/bin/ditto", ["-x", "-k", file.path, work.path])
+            unpacked = work
+        }
+
+        // verify the app
+        guard let newApp = try fm.contentsOfDirectory(at: unpacked, includingPropertiesForKeys: nil)
+                .first(where: { $0.pathExtension == "app" }),
               let info = NSDictionary(contentsOf: newApp.appendingPathComponent("Contents/Info.plist")),
               info["CFBundleIdentifier"] as? String == Bundle.main.bundleIdentifier
         else { throw UpdateError("The download isn't a Lirica app.") }
@@ -132,7 +213,11 @@ final class Updater {
         // stage it next to the current app (same volume, so the final swap is a rename)
         let staged = appURL.deletingLastPathComponent().appendingPathComponent(".Lirica update.app")
         try? fm.removeItem(at: staged)
-        try fm.moveItem(at: newApp, to: staged)
+        if release.isDiskImage {
+            try run("/usr/bin/ditto", [newApp.path, staged.path])   // ditto keeps the signature intact
+        } else {
+            try fm.moveItem(at: newApp, to: staged)
+        }
 
         // swap once this process has quit, then relaunch
         let script = """

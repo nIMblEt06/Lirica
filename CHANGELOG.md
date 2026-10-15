@@ -2,6 +2,18 @@
 
 All notable changes to Lirica. Versions follow [semantic versioning](https://semver.org).
 
+## 1.7.1 — 2026-10-15
+
+### Changed
+- **Releases now ship a disk image.** Open **Lirica-1.7.1.dmg** and drag Lirica into the Applications alias on the
+  card. The zip stays beside it for copies of the app that still expect one.
+
+### Fixed
+- **Automatic updates work on networks where GitHub's anonymous API is rate-limited.** Shared addresses, VPNs and
+  proxies can exhaust the API's budget of 60 requests an hour, and the app used to give up with "The latest release
+  doesn't have a downloadable app." It now falls back to the releases page, which has no such limit, and a failed
+  check is retried in 15 minutes instead of six hours. Updates install from the disk image, verified the same way.
+
 ## 1.7.0 — 2026-10-15
 
 ### Changed

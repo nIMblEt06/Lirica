@@ -2,7 +2,8 @@
 # Builds "Lirica.app" into build/.
 #   ./build.sh            build for this Mac
 #   ./build.sh install    build, copy to /Applications and launch
-#   ./build.sh release    universal (Apple Silicon + Intel) build, zipped for a GitHub release
+#   ./build.sh dmg        build the styled installer disk image
+#   ./build.sh release    universal (Apple Silicon + Intel) build, disk image + zip for a GitHub release
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -43,7 +44,12 @@ case "$MODE" in
     VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" Info.plist)
     ZIP="build/Lirica-$VERSION.zip"
     rm -f "$ZIP"
-    ditto -c -k --keepParent "$APP" "$ZIP"
-    echo "Packaged $ZIP"
+    ditto -c -k --keepParent "$APP" "$ZIP"   # kept for copies of the app that predate DMG updates
+    ./make-dmg.sh "$APP" "$VERSION" "build/Lirica-$VERSION.dmg"
+    echo "Packaged $ZIP and build/Lirica-$VERSION.dmg"
+    ;;
+  dmg)
+    VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" Info.plist)
+    ./make-dmg.sh "$APP" "$VERSION" "build/Lirica-$VERSION.dmg"
     ;;
 esac

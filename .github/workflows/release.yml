@@ -57,6 +57,7 @@ jobs:
           cd app && ./build.sh release
           lipo -archs "build/Lirica.app/Contents/MacOS/SpotifyWallpaper"
           codesign --verify --deep --strict "build/Lirica.app"
+          hdiutil verify "build/Lirica-${{ steps.version.outputs.version }}.dmg"
 
       - name: Release notes
         run: python3 .github/scripts/release_notes.py "${{ steps.version.outputs.version }}" "${{ steps.version.outputs.previous }}" > notes.md
@@ -64,5 +65,5 @@ jobs:
       - name: Publish
         run: |
           v="${{ steps.version.outputs.version }}"
-          gh release create "v$v" "app/build/Lirica-$v.zip" \
+          gh release create "v$v" "app/build/Lirica-$v.dmg" "app/build/Lirica-$v.zip" \
             --title "Lirica $v" --notes-file notes.md --target "$GITHUB_SHA"

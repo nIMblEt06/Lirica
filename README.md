@@ -82,8 +82,8 @@ See what changed in each version in the **[changelog](CHANGELOG.md)**, or in the
 
 ## Install
 
-1. Download **Lirica-x.y.zip** from the [latest release](../../releases/latest) and unzip it.
-2. Move **Lirica.app** to **/Applications**.
+1. Download **Lirica-x.y.dmg** from the [latest release](../../releases/latest) and open it.
+2. Drag **Lirica** into **Applications**.
 3. The app isn't notarized by Apple, so the first time, **right-click it → Open → Open**. Or run:
    ```sh
    xattr -dr com.apple.quarantine "/Applications/Lirica.app"
@@ -94,9 +94,11 @@ See what changed in each version in the **[changelog](CHANGELOG.md)**, or in the
 Requires macOS 14 Sonoma or later. Spotify and Apple Music work directly; browsers, YouTube Music and other
 players work through the Mac's Now Playing feed. Lirica runs natively on Apple Silicon and Intel.
 
-**Updates install themselves** from v1.2.0 on. The app checks this repo's releases at launch and every 6 hours,
-verifies the download (GitHub's SHA-256 checksum, the app's identifier and its code signature), swaps it in and
-relaunches. Turn this off under **Automatically Install Updates** in the menu.
+**Updates install themselves** from v1.2.0 on. The app checks this repo's releases at launch and every 6 hours —
+through the GitHub API when it can, and through the releases page when the anonymous API is rate-limited, as it
+often is on shared addresses — verifies the download (GitHub's SHA-256 checksum when one is reported, the app's
+identifier and its code signature), swaps it in and relaunches. Turn this off under **Automatically Install
+Updates** in the menu.
 
 **Recommended:** turn on **System Settings → Wallpaper → Show on all Spaces**, so the still wallpaper is shared by
 every Space rather than set one Space at a time.
@@ -255,7 +257,8 @@ Needs Xcode 15+ (Swift 5.9).
 cd app
 ./build.sh            # build into app/build/
 ./build.sh install    # build, copy to /Applications and launch
-./build.sh release    # universal build + zip for a release
+./build.sh dmg        # build the styled installer disk image
+./build.sh release    # universal build + disk image and zip for a release
 ```
 
 See what every lyrics source returns for a song, and the combined timing:
@@ -267,7 +270,9 @@ See what every lyrics source returns for a song, and the combined timing:
 ### Releasing
 
 Merging to `main` releases automatically: [`.github/workflows/release.yml`](.github/workflows/release.yml) builds the
-universal app on a macOS runner and publishes a GitHub release, and installed copies update themselves from it.
+universal app on a macOS runner, packages the styled disk image
+([`app/make-dmg.sh`](app/make-dmg.sh) — the window layout, background and volume icon) and publishes a GitHub
+release; installed copies update themselves from it.
 
 - To pick the version, set it in `app/Info.plist` (e.g. `1.5.0`). Otherwise the patch number is bumped.
 - Add a `## <version>` section to `CHANGELOG.md`; it becomes the release notes and shows in **What's New**.
