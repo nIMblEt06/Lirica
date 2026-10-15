@@ -1,5 +1,15 @@
 import Foundation
 
+/// A playback command templates can send from the wallpaper (data-control clicks, Wallpaper.control).
+enum SpotifyControl {
+    case togglePlayPause
+    case next
+    case previous
+    case seek(Double)      // seconds into the song
+    case setVolume(Double) // percent, 0–100
+    case volumeBy(Double)  // percent to add, e.g. -6.25
+}
+
 /// Reads the Spotify desktop app's current track over AppleScript. No login or API key needed.
 ///
 /// AppleScript round-trips are slow (~45 ms for position/state, ~100 ms for everything), so they run on a
@@ -13,6 +23,8 @@ final class SpotifyMonitor: @unchecked Sendable {
 
     private let wake = NSCondition()
     private var pending = false
+    /// Playback commands queued by the UI; run on the monitor thread, where the NSAppleScripts live.
+    private var controls: [SpotifyControl] = []
     private var thread: Thread?
 
     private static let fullSource = """
@@ -37,6 +49,45 @@ final class SpotifyMonitor: @unchecked Sendable {
     return "NOT_RUNNING"
     """
 
+    // Playback controls. Every one is a no-op unless Spotify is already running, so a click on the wallpaper
+    // never launches the app.
+    private static let playPauseSource = """
+    if application "Spotify" is running then tell application "Spotify" to playpause
+    """
+
+    private static let nextSource = """
+    if application "Spotify" is running then tell application "Spotify" to next track
+    """
+
+    private static let previousSource = """
+    if application "Spotify" is running then tell application "Spotify" to previous track
+    """
+
+    private static func seekSource(_ seconds: Double) -> String {
+        """
+        if application "Spotify" is running then tell application "Spotify" to set player position to \(String(format: "%.3f", seconds))
+        """
+    }
+
+    private static func setVolumeSource(_ percent: Double) -> String {
+        """
+        if application "Spotify" is running then tell application "Spotify" to set sound volume to \(Int(percent.rounded()))
+        """
+    }
+
+    private static func volumeSource(_ percent: Double) -> String {
+        """
+        if application "Spotify" is running then
+          tell application "Spotify"
+            set v to (sound volume) + (\(String(format: "%.1f", percent)))
+            if v > 100 then set v to 100
+            if v < 0 then set v to 0
+            set sound volume to v
+          end tell
+        end if
+        """
+    }
+
     func start() {
         DistributedNotificationCenter.default().addObserver(
             forName: NSNotification.Name("com.spotify.client.PlaybackStateChanged"), object: nil, queue: nil) { [weak self] _ in
@@ -57,15 +108,30 @@ final class SpotifyMonitor: @unchecked Sendable {
         wake.unlock()
     }
 
+    /// Queue a playback command (play/pause, skip, seek, volume). Runs before the next read, so the state that
+    /// comes back right after reflects it.
+    func perform(_ control: SpotifyControl) {
+        wake.lock()
+        controls.append(control)
+        pending = true
+        wake.signal()
+        wake.unlock()
+    }
+
     private func run() {
         // NSAppleScript objects stay on this one thread
         let full = NSAppleScript(source: Self.fullSource)!
         let light = NSAppleScript(source: Self.lightSource)!
+        let playPause = NSAppleScript(source: Self.playPauseSource)!
+        let next = NSAppleScript(source: Self.nextSource)!
+        let previous = NSAppleScript(source: Self.previousSource)!
         full.compileAndReturnError(nil)
         light.compileAndReturnError(nil)
+        for script in [playPause, next, previous] { script.compileAndReturnError(nil) }
         var current: Track?
 
         while true {
+            drainControls(playPause, next: next, previous: previous)
             let before = Date().timeIntervalSince1970 * 1000
             var track: Track?
             if let out = execute(light) {
@@ -98,6 +164,28 @@ final class SpotifyMonitor: @unchecked Sendable {
         var error: NSDictionary?
         guard let out = script.executeAndReturnError(&error).stringValue, out != "STOPPED", out != "NOT_RUNNING" else { return nil }
         return out
+    }
+
+    /// Runs the commands queued since the last drain. Seek and volume scripts depend on their value, so they're
+    /// compiled here, on the script's own thread, rather than kept around.
+    private func drainControls(_ playPause: NSAppleScript, next: NSAppleScript, previous: NSAppleScript) {
+        wake.lock()
+        let queued = controls
+        controls.removeAll()
+        wake.unlock()
+        for control in queued {
+            var script: NSAppleScript
+            switch control {
+            case .togglePlayPause: script = playPause
+            case .next: script = next
+            case .previous: script = previous
+            case .seek(let seconds): script = NSAppleScript(source: Self.seekSource(seconds))!
+            case .setVolume(let percent): script = NSAppleScript(source: Self.setVolumeSource(percent))!
+            case .volumeBy(let percent): script = NSAppleScript(source: Self.volumeSource(percent))!
+            }
+            if script !== playPause && script !== next && script !== previous { script.compileAndReturnError(nil) }
+            script.executeAndReturnError(nil)
+        }
     }
 
     private static func parseFull(_ out: String) -> Track? {

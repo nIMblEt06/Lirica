@@ -85,6 +85,7 @@ Use `vmin`/`vw`/`vh` units so it adapts to both laptop and ultrawide screens.
 - `data-src="track.cover"` sets `src` on an image.
 - `data-show="lyrics.hasLyrics"` hides the element when false. Prefix `!` to invert.
 - `data-attr-<name>="expr"` sets any attribute, e.g. `data-attr-after="params.linesAfter"`.
+- `data-control="playPause"` makes the element control Spotify — see **Playback controls** below.
 
 ### CSS variables
 
@@ -132,6 +133,40 @@ runs on each beat with `{ strength, bpm, last, level }`, and `Wallpaper.beat` al
 - `<wave-form bars="56">` draws a waveform that changes with every line (`.bar`, uses `currentColor`).
 - `<progress-bar>` is a bar filled to `--progress` (`.fill`, uses `currentColor`).
 - `<div class="sw-grain">` adds a film-grain overlay.
+
+## Playback controls
+
+Mark an element with `data-control` and it becomes a real, working control for the Spotify app:
+
+```html
+<progress-bar data-control="seek" data-show="params.controls"></progress-bar>
+<div data-control="previous">‹‹</div>
+<div data-control="playPause">⏯</div>
+<div data-control="next">››</div>
+```
+
+| `data-control` | What it does |
+|---|---|
+| `playPause` | a click toggles play/pause |
+| `next` / `previous` | a click skips a track |
+| `seek` | a click or drag across the element seeks to that point in the song |
+| `volume` | scrolling over the element (or anything inside it) steps the volume like the volume keys |
+
+On the desktop the live layer sits behind everything and normally gets no clicks at all. The app watches the
+pointer and lets the page take a click only while it's over one of these elements — everywhere else your icons,
+right-clicks and drags behave as usual, and the app never activates or takes the keyboard. In the preview window
+and the template builder the controls are simply clickable.
+
+A few things worth knowing:
+
+- The element's whole box is the target, so give small glyphs a padded wrapper.
+- Swap play/pause glyphs with `html.is-playing` (`html:not(.is-playing)` while paused), as Minimal and Glow do.
+- Gate them with a bool setting: `data-show="params.controls"`.
+- From your own JS, `Wallpaper.control("next")`, `("playPause")`, `("previous")`, `("seek", 0.5)` (0–1 of the
+  song), `("volume", 0.4)` (0–1) or `("volumeBy", ±1)` (±100%). Every command also reaches
+  `Wallpaper.on("control", ({ command, value }) => { … })`.
+- Controls never launch Spotify (the wallpaper isn't on screen unless Spotify is running) and can be switched
+  off app-wide under **Wallpaper Controls** in the menu.
 
 ## Animation
 

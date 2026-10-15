@@ -60,6 +60,12 @@ progress-bar .fill { position: absolute; inset: 0; background: currentColor; bor
   transform: translateX(calc((var(--progress) - 1) * 100%)); }
 .sw-live progress-bar .fill { will-change: transform; }
 
+/* Playback controls: data-control="playPause|next|previous|seek|volume" elements are clickable on the desktop
+   wallpaper (and in the preview). Clicks only reach them when the pointer is over the element, so the rest of
+   the desktop keeps working; give them a cursor and no text selection. */
+[data-control] { cursor: pointer; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+[data-control]:active { cursor: default; }
+
 /* Film grain overlay: <div class="sw-grain"></div>. A precomputed noise tile (not a live SVG filter, which the
    browser recomputed whenever anything underneath moved), on its own layer so it's never redrawn. */
 .sw-grain {

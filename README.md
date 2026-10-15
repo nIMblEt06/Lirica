@@ -71,6 +71,10 @@ with sliders or rewrite completely.
   the app's Home window next to a live preview. You can also duplicate a template and edit its HTML/CSS directly; it
   reloads as you save.
 - **No login or API key.** It reads the Spotify desktop app directly.
+- **Controls on the wallpaper itself:** templates can put real controls on your desktop — click play/pause and
+  skip, drag a progress bar to seek, and in Classic scroll the iPod's click wheel for the volume. Clicks reach the
+  page only while the pointer is over a control, so icons, right-clicks and drags on the rest of the desktop behave
+  exactly as before. Turn it off any time under **Wallpaper Controls** in the menu.
 
 <p align="center"><img src="docs/screenshots/customize.jpg" width="85%" alt="The Customize window"></p>
 
@@ -84,7 +88,8 @@ See what changed in each version in the **[changelog](CHANGELOG.md)**, or in the
    ```sh
    xattr -dr com.apple.quarantine "/Applications/Spotify Wallpaper.app"
    ```
-4. When macOS asks whether Spotify Wallpaper may **control Spotify**, click **OK**. That's how it reads what's playing.
+4. When macOS asks whether Spotify Wallpaper may **control Spotify**, click **OK**. That's how it reads what's
+   playing — and how the controls on your wallpaper talk to Spotify.
 
 Requires macOS 14 Sonoma or later and the Spotify desktop app. It runs natively on Apple Silicon and Intel.
 
@@ -106,6 +111,7 @@ Everything is in the ♪ menu bar icon:
 | **Lyrics** | Nudge this song's timing earlier or later (remembered per song). Pick the source or search again in Home's Lyrics tab |
 | **Refresh Rate** | Display maximum, 60, 30 or 15 fps for the animation. Lyric timing is exact at any rate |
 | **Pause Wallpaper** | Put your normal wallpaper back until you resume |
+| **Wallpaper Controls** | Let templates' controls (play/pause, skip, seek, volume) work right on the wallpaper |
 | **Open Templates Folder** | Where your own templates live |
 | **Launch at Login** | Start automatically |
 | **What's New…** | The changelog; it also opens once after each update |
@@ -194,7 +200,8 @@ You get track data (`track.title`, `track.progress`, …), lyrics (`lyrics.curre
 `--line-time` CSS variables), time-driven animation (`data-follow="song | line | seconds | minutes | hours"` maps a
 CSS animation onto the song, the current line or the clock, on the GPU), text with variables
 (`data-template="{{track.title}} · {{time.clock}}"`), cover colors (`--vibrant`, `--dominant`, `--p0`…`--p5`, …), smart components
-(`<lyrics-block>`, `<fit-text>`, `<swatch-row>`, `<wave-form>`, `<progress-bar>`) and animation hooks. The full
+(`<lyrics-block>`, `<fit-text>`, `<swatch-row>`, `<wave-form>`, `<progress-bar>`), working playback controls
+(`data-control="playPause | next | previous | seek | volume"`) and animation hooks. The full
 reference is in **[TEMPLATE_GUIDE.md](app/Resources/web/TEMPLATE_GUIDE.md)**, which is also copied into your
 templates folder.
 

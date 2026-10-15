@@ -2,6 +2,18 @@
 
 All notable changes to Spotify Wallpaper. Versions follow [semantic versioning](https://semver.org).
 
+## 1.7.0 — 2026-10-15
+
+### Added
+- **Control Spotify from the wallpaper.** Templates can now put real playback controls on your desktop: click
+  play/pause and skip, drag a progress bar to seek. In **Classic** the iPod's click wheel works — scroll it for the
+  volume, click its edges to skip and its centre to play or pause — and **Minimal**, **Glow** and **Card** carry
+  transports and a seekable progress bar.
+- Clicks reach the page only while the pointer is over a control of a template that has them, so icons, right-clicks
+  and drags on the rest of the desktop behave exactly as before; the wallpaper never activates and never takes the
+  keyboard. Templates choose what to offer with `data-control="playPause | next | previous | seek | volume"` — the
+  template guide has the details — and it can be turned off app-wide under **Wallpaper Controls** in the menu.
+
 ## 1.6.0 — 2026-10-09
 
 ### Added

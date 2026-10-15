@@ -96,6 +96,67 @@ final class Engine {
         return "\(t.title) — \(t.artist)"
     }
 
+    // MARK: playback controls on the wallpaper (data-control in templates)
+
+    /// "Wallpaper Controls" in the menu. On by default: clicks on a template's controls drive Spotify.
+    var controlsEnabled: Bool {
+        get { UserDefaults.standard.object(forKey: "wallpaperControls") as? Bool ?? true }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "wallpaperControls")
+            updateControlWatcher()
+        }
+    }
+
+    /// A command from a template: playPause, next, previous, seek (0–1 through the song), volume (0–1) or
+    /// volumeBy (±1 = ±100%).
+    func performControl(_ command: String, value: Double?) {
+        guard controlsEnabled else { return }
+        switch command {
+        case "playPause": spotify.perform(.togglePlayPause)
+        case "next": spotify.perform(.next)
+        case "previous": spotify.perform(.previous)
+        case "seek":
+            guard let t = track, t.duration > 0, let v = value else { return }
+            spotify.perform(.seek(min(max(v, 0), 1) * t.duration))
+        case "volume":
+            guard let v = value else { return }
+            spotify.perform(.setVolume(min(max(v, 0), 1) * 100))
+        case "volumeBy":
+            guard let v = value else { return }
+            spotify.perform(.volumeBy(min(max(v, -1), 1) * 100))
+        default: break
+        }
+    }
+
+    /// While a control is on screen, watch the pointer so the layer can take clicks over the control only —
+    /// everywhere else the desktop keeps them. The timer only runs while it has something to watch.
+    private func updateControlWatcher() {
+        let wanted = controlsEnabled && layers.values.contains { $0.isShown && $0.hasControls }
+        if wanted, controlTimer == nil {
+            let timer = Timer(timeInterval: 1.0 / 30, repeats: true) { [weak self] _ in
+                MainActor.assumeIsolated { self?.pollControls() }
+            }
+            timer.tolerance = 0.01
+            RunLoop.main.add(timer, forMode: .common)
+            controlTimer = timer
+        } else if !wanted, let timer = controlTimer {
+            timer.invalidate()
+            controlTimer = nil
+            layers.values.forEach { $0.setInteractive(false) }
+        }
+    }
+
+    private var controlTimer: Timer?
+
+    private func pollControls() {
+        let pointer = NSEvent.mouseLocation
+        for layer in layers.values where layer.isShown {
+            let over = layer.isPointerOverControl(pointer)
+            layer.setInteractive(over)
+            if over { return }  // the pointer can only be on one screen
+        }
+    }
+
     init(store: TemplateStore, paths: Paths) {
         self.store = store
         self.paths = paths
@@ -103,9 +164,12 @@ final class Engine {
         setter = WallpaperSetter(paths: paths)
     }
 
+    private lazy var controlBridge = ControlBridge(engine: self)
+
     func makeWebConfiguration(throttleWhenHidden: Bool = false) -> WKWebViewConfiguration {
         let config = WKWebViewConfiguration()
         config.setURLSchemeHandler(schemeHandler, forURLScheme: "sw")
+        config.userContentController.add(controlBridge, name: "swCommand")
         if !throttleWhenHidden { config.preferences.inactiveSchedulingPolicy = .none }
         return config
     }
@@ -197,6 +261,7 @@ final class Engine {
         layers.removeAll()
         renderers.values.forEach { $0.close() }
         renderers.removeAll()
+        updateControlWatcher()
         invalidate()
     }
 
@@ -242,6 +307,7 @@ final class Engine {
         if !liveChanged.isEmpty { onStateChange?() }
         let clock = jsonString(["position": t.position, "isPlaying": t.isPlaying, "stamp": pollStamp])
         layers.values.forEach { $0.sendClock(clock); $0.show() }
+        updateControlWatcher()
         onClock?(clock)
 
         // real wallpaper still: only the screens whose key changed are redrawn
@@ -261,7 +327,9 @@ final class Engine {
             guard let template = templates[id] else { continue }
             if layers[id]?.frame != screen.frame {
                 layers[id]?.close()
-                layers[id] = DesktopLayer(screen: screen, configuration: makeWebConfiguration(throttleWhenHidden: true))
+                let layer = DesktopLayer(screen: screen, configuration: makeWebConfiguration(throttleWhenHidden: true))
+                layer.onControlsChanged = { [weak self] in self?.updateControlWatcher() }
+                layers[id] = layer
                 liveKeys[id] = nil
             }
             var url = URLComponents(url: template.url, resolvingAgainstBaseURL: false)!
@@ -270,7 +338,10 @@ final class Engine {
         }
     }
 
-    private func hideLayers() { layers.values.forEach { $0.hide() } }
+    private func hideLayers() {
+        layers.values.forEach { $0.hide() }
+        updateControlWatcher()
+    }
 
     private func load(_ t: Track) async {
         fetchGenre(t)

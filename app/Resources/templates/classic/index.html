@@ -136,6 +136,15 @@
   .wheel .next { right: 9%; top: 50%; width: calc(var(--u) * 7); height: calc(var(--u) * 3.6); margin-top: calc(var(--u) * -1.8); }
   .wheel .pp { left: 50%; bottom: 10%; width: calc(var(--u) * 7.4); height: calc(var(--u) * 3.6); margin-left: calc(var(--u) * -3.7); }
 
+  /* the wheel works: scroll it for volume, click its edges to skip, its centre to play or pause */
+  .wheel .vsense { position: absolute; inset: 5%; border-radius: 50%; }
+  .wheel .zone { position: absolute; }
+  .wheel .zprev { left: 2%; top: 30%; width: 22%; height: 40%; }
+  .wheel .znext { right: 2%; top: 30%; width: 22%; height: 40%; }
+  .wheel .zpp { left: 35%; bottom: 0; width: 30%; height: 26%; }
+  .wheel .zbtn { left: 25%; top: 25%; width: 50%; height: 50%; border-radius: 50%; }
+  .pb .scrub { padding: calc(var(--s) * 4) 0; margin: calc(var(--s) * -4) 0; }
+
   /* portrait: the iPod on top, the title under it */
   @media (max-aspect-ratio: 1/1) {
     :root { --ph: min(58vh, 140vw); }
@@ -174,7 +183,7 @@
               </div>
             </div>
             <div class="lyric" data-lyrics><div id="ly" data-animate></div></div>
-            <div class="pb"><progress-bar></progress-bar><div class="times"><span data-bind="track.elapsed"></span><span data-bind="track.remaining"></span></div></div>
+            <div class="pb"><div class="scrub" data-control="seek" data-show="params.controls"><progress-bar></progress-bar></div><div class="times"><span data-bind="track.elapsed"></span><span data-bind="track.remaining"></span></div></div>
           </div>
           <div class="glass"></div>
         </div>
@@ -184,6 +193,12 @@
           <svg class="next" viewBox="0 0 28 14"><path d="M0 0v14l11.4-7zM12 0v14l11.4-7z"/><rect x="25.4" y="0" width="2.6" height="14"/></svg>
           <svg class="pp" viewBox="0 0 30 14"><path d="M0 0v14l11.4-7z"/><rect x="17" y="0" width="4" height="14"/><rect x="24.5" y="0" width="4" height="14"/></svg>
           <div class="btn"></div>
+          <div class="vsense" data-control="volume" data-show="params.controls">
+            <div class="zone zprev" data-control="previous" role="button" aria-label="Previous"></div>
+            <div class="zone znext" data-control="next" role="button" aria-label="Next"></div>
+            <div class="zone zpp" data-control="playPause" role="button" aria-label="Play or pause"></div>
+            <div class="zone zbtn" data-control="playPause" role="button" aria-label="Play or pause"></div>
+          </div>
         </div>
       </div>
     </div>

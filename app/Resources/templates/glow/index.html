@@ -29,6 +29,17 @@
   .title { font-weight: 700; font-size: 3.2vmin; margin-top: 4vmin; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .artist { font-weight: 500; font-size: 2.4vmin; opacity: 0.62; margin-top: 0.8vmin; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   progress-bar { margin-top: 3vmin; color: rgba(255, 255, 255, 0.85); background: rgba(255, 255, 255, 0.22); }
+  /* playback controls, Apple Music style: drag the bar to seek, click the transport to skip */
+  .scrub { margin-top: 3vmin; padding: 1.7vmin 0; margin-bottom: 0.4vmin; }
+  .scrub progress-bar { margin-top: 0; }
+  .transport { display: flex; align-items: center; justify-content: center; gap: 5.4vmin; margin-top: 1.6vmin; opacity: 0.52; transition: opacity 0.3s ease; }
+  .transport:hover { opacity: 1; }
+  .ctl { display: grid; place-items: center; width: 3.4vmin; height: 3.4vmin; color: #fff; }
+  .ctl[data-control="playPause"] { width: 4.8vmin; height: 4.8vmin; }
+  .ctl svg { width: 100%; height: 100%; fill: currentColor; display: block; }
+  .ctl .i-play, .ctl .i-pause { display: none; }
+  html:not(.is-playing) .ctl .i-play { display: block; }
+  html.is-playing .ctl .i-pause { display: block; }
 
   lyrics-block { flex: 1; height: 82vh; max-width: 110vmin; }
   lyrics-block .line {
@@ -49,7 +60,21 @@
       <img class="cover" data-src="track.cover" alt="">
       <div class="title" data-bind="track.title"></div>
       <div class="artist" data-bind="track.artist"></div>
-      <progress-bar data-show="params.showProgress"></progress-bar>
+      <div class="scrub" data-control="seek" data-show="params.showProgress">
+        <progress-bar></progress-bar>
+      </div>
+      <div class="transport" data-show="params.controls">
+        <div class="ctl" data-control="previous" role="button" aria-label="Previous">
+          <svg viewBox="0 0 24 24"><path d="M6 5h2.6v14H6zM20 5v14L9.3 12z"/></svg>
+        </div>
+        <div class="ctl" data-control="playPause" role="button" aria-label="Play or pause">
+          <svg class="i-play" viewBox="0 0 24 24"><path d="M7 4.2v15.6L20 12z"/></svg>
+          <svg class="i-pause" viewBox="0 0 24 24"><path d="M6.8 4.5h3.5v15H6.8zM13.7 4.5h3.5v15h-3.5z"/></svg>
+        </div>
+        <div class="ctl" data-control="next" role="button" aria-label="Next">
+          <svg viewBox="0 0 24 24"><path d="M15.4 5H18v14h-2.6zM4 5v14l10.7-7z"/></svg>
+        </div>
+      </div>
     </div>
     <lyrics-block layout="center" data-attr-class="params.karaoke|kclass" data-attr-duet="params.duet" data-attr-translations="params.translations" data-attr-before="params.linesBefore" data-attr-after="params.linesAfter"></lyrics-block>
     <div class="empty" data-show="!lyrics.hasLyrics">No lyrics found</div>

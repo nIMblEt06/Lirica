@@ -73,6 +73,12 @@
       "default": true
     },
     {
+      "key": "controls",
+      "type": "bool",
+      "label": "Playback controls",
+      "default": true
+    },
+    {
       "key": "lowercase",
       "type": "bool",
       "label": "Lowercase footer",

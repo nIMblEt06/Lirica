@@ -7,6 +7,7 @@
  *   - offers hooks for custom JS:  Wallpaper.on('render', ctx => …)
  *   - tags <html> with the moment: sw-focus, sw-duet, sw-weather-<condition>, sw-phase-<night|dawn|day|dusk>
  *   - relays beats from the app:   Wallpaper.on('beat', b => …), --beat (decaying pulse) and --level
+ *   - playback controls:           data-control="playPause|next|previous|seek|volume" click, drag or scroll
  * See TEMPLATE_GUIDE.md in the templates folder for the full reference.
  */
 (function () {
@@ -467,6 +468,92 @@
     }
   }
 
+  // ---------- playback controls ----------
+  // Elements with data-control control the real Spotify: playPause | next | previous | seek | volume.
+  // A click sends the command to the app; seek (and volume) also follow a drag, volume follows the wheel.
+  // The app lets clicks through to the page only while the pointer is over one of these elements, so the
+  // runtime keeps it told where they are (reportControlRects, below) and nothing intercepts the rest of
+  // the desktop.
+
+  function sendControl(command, value) {
+    const handler = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.swCommand;
+    if (handler) handler.postMessage(value == null ? { command } : { command, value });
+    emit("control", { command, value });
+  }
+  Wallpaper.control = sendControl;
+
+  const controlOf = (e) => (e.target && e.target.closest ? e.target.closest("[data-control]") : null);
+
+  document.addEventListener("click", (e) => {
+    const el = controlOf(e), command = el && el.dataset.control;
+    if (command === "playPause" || command === "next" || command === "previous") sendControl(command);
+  });
+
+  // a long press on a control shouldn't pop the page's (empty) context menu over the desktop
+  document.addEventListener("contextmenu", (e) => { if (controlOf(e)) e.preventDefault(); });
+
+  // Drag to seek (or set the volume): throttled while dragging, then once more on release.
+  const CONTROL_EVERY = 120;  // ms
+  let scrub = null;
+  function scrubTo(e) {
+    const r = scrub.el.getBoundingClientRect();
+    scrub.value = clamp((e.clientX - r.left) / Math.max(1, r.width), 0, 1);
+    const now = Date.now();
+    if (now - scrub.last >= CONTROL_EVERY) { scrub.last = now; sendControl(scrub.mode, scrub.value); }
+  }
+  document.addEventListener("pointerdown", (e) => {
+    const el = controlOf(e), mode = el && el.dataset.control;
+    if (mode !== "seek" || e.button !== 0) return;
+    e.preventDefault();
+    if (el.setPointerCapture) el.setPointerCapture(e.pointerId);
+    scrub = { mode, el, id: e.pointerId, last: 0, value: null };
+    scrubTo(e);
+  });
+  document.addEventListener("pointermove", (e) => { if (scrub && e.pointerId === scrub.id) scrubTo(e); });
+  const endScrub = (e) => {
+    if (!scrub || (e && e.pointerId !== scrub.id)) return;
+    if (scrub.value != null) sendControl(scrub.mode, scrub.value);
+    scrub = null;
+  };
+  document.addEventListener("pointerup", endScrub);
+  document.addEventListener("pointercancel", endScrub);
+
+  // The wheel over a volume control (or anything inside it) steps it like the volume keys (1/16th each).
+  let wheelAccum = 0, wheelTimer = null;
+  document.addEventListener("wheel", (e) => {
+    const el = e.target && e.target.closest ? e.target.closest('[data-control="volume"]') : null;
+    if (!el) return;
+    e.preventDefault();
+    wheelAccum += e.deltaY;
+    if (wheelTimer) return;
+    wheelTimer = setTimeout(() => {
+      wheelTimer = null;
+      const raw = -wheelAccum;
+      if (Math.abs(raw) < 2) return;  // tiny trackpad deltas keep accumulating
+      wheelAccum = 0;
+      const steps = clamp(raw > 0 ? Math.max(1, Math.round(raw / 12)) : Math.min(-1, Math.round(raw / 12)), -3, 3);
+      sendControl("volumeBy", steps / 16);
+    }, 150);
+  }, { passive: false });
+
+  /** Tell the app where the controls are, so it knows where the pointer may take clicks from the desktop. */
+  let controlRectSig = "";
+  function reportControlRects() {
+    if (!live) return;
+    const handler = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.swControls;
+    if (!handler) return;
+    const rects = [];
+    for (const el of document.querySelectorAll("[data-control]")) {
+      const r = el.getBoundingClientRect();
+      if (r.width > 0 && r.height > 0) rects.push([+r.left.toFixed(1), +r.top.toFixed(1), +r.width.toFixed(1), +r.height.toFixed(1)]);
+    }
+    const sig = JSON.stringify(rects);
+    if (sig === controlRectSig) return;
+    controlRectSig = sig;
+    handler.postMessage({ rects });
+  }
+  addEventListener("resize", reportControlRects);
+
   // ---------- render ----------
 
   function applyAll(ctx) {
@@ -477,12 +564,14 @@
     document.querySelectorAll("swatch-row").forEach((el) => swatchRow(el, ctx));
     document.querySelectorAll("wave-form").forEach((el) => waveForm(el, ctx));
     document.querySelectorAll("progress-bar").forEach(progressBar);
+    reportControlRects();
     emit("render", ctx);
   }
 
   function layoutAll(ctx) {
     document.querySelectorAll("fit-text").forEach(fitText);
     document.querySelectorAll("lyrics-block").forEach((el) => positionLyrics(el, ctx));
+    reportControlRects();
     emit("layout", ctx);
   }
 
@@ -682,6 +771,7 @@
         Wallpaper.ctx = ctx;
         applyBindings(ctx);  // elapsed time, clock
         momentClasses(ctx);  // the time of day moves on
+        reportControlRects();  // drift of animated controls
         emit("tick", ctx);
       }, 1000);
     });
