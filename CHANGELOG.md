@@ -32,6 +32,10 @@ All notable changes to Lirica. Versions follow [semantic versioning](https://sem
 ### Fixed
 - The live wallpaper now stays at the real macOS desktop level. It no longer covers the focused app when playback
   changes or while switching Spaces, and Space changes no longer force the wallpaper window to the front.
+- Lirica now tracks each Now Playing app independently, so the selected default wins when Spotify and YouTube Music
+  play at the same time. Browser playback follows the **YouTube Music** default instead of being mistaken for
+  **Other Apps**, and controls remain scoped to the player shown on the wallpaper.
+- Quitting no longer asks for access to Downloads or Pictures when the original wallpaper lives there.
 
 ## 1.6.0 — 2026-10-09
 

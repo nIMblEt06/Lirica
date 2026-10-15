@@ -33,7 +33,7 @@ final class SpotifyMonitor: @unchecked Sendable {
     private var thread: Thread?
 
     /// Where the active track came from, so controls go to the right app.
-    private enum Source { case spotify, music, other }
+    private enum Source { case spotify, music, other(Int32) }
 
     /// One player's scripts and the track it reported last, so the light check can skip the full lookup.
     private final class Player {
@@ -162,6 +162,7 @@ final class SpotifyMonitor: @unchecked Sendable {
         var followed: MusicProvider?
         var playingBefore = Set<MusicProvider>()
         var lastPlayed = Date()
+        var defaultBefore = MusicProvider.defaultProvider
 
         while true {
             let otherOn = UserDefaults.standard.object(forKey: "otherPlayers") as? Bool ?? true
@@ -173,18 +174,30 @@ final class SpotifyMonitor: @unchecked Sendable {
             var found: [MusicProvider: (track: Track, source: Source)] = [:]
             if let t = s { found[.spotify] = (t, .spotify) }
             if let t = m { found[.appleMusic] = (t, .music) }
-            if otherOn, let feed = nowPlaying?.current(now: Date()) { found[MusicProvider.of(bundle: feed.bundle)] = (feed.track, .other) }
+            if otherOn {
+                for feed in nowPlaying?.sessions(now: Date()) ?? [] {
+                    let provider = MusicProvider.of(bundle: feed.bundle)
+                    let old = found[provider]
+                    if old == nil || (feed.track.isPlaying && old?.track.isPlaying == false) ||
+                        (feed.track.isPlaying == old?.track.isPlaying && feed.isCurrent) {
+                        found[provider] = (feed.track, .other(feed.pid))
+                    }
+                }
+            }
             // The wallpaper keeps following one provider. It switches only when the default starts playing, or when
             // nothing has played for an hour and something starts. Controls don't change it.
             let now = Date()
+            let defaultProvider = MusicProvider.defaultProvider
+            let defaultChanged = defaultProvider != defaultBefore
+            defaultBefore = defaultProvider
             let playingNow = Set(found.filter { $0.value.track.isPlaying }.keys)
             let started = playingNow.subtracting(playingBefore)
             let silentAnHour = now.timeIntervalSince(lastPlayed) > 3600
             if !playingNow.isEmpty { lastPlayed = now }
             playingBefore = playingNow
             if let f = followed, found[f] != nil {
-                if started.contains(MusicProvider.defaultProvider) {
-                    followed = MusicProvider.defaultProvider
+                if (defaultChanged && playingNow.contains(defaultProvider)) || started.contains(defaultProvider) {
+                    followed = defaultProvider
                 } else if silentAnHour, let first = MusicProvider.priority.first(where: { playingNow.contains($0) }) {
                     followed = first
                 }
@@ -257,18 +270,18 @@ final class SpotifyMonitor: @unchecked Sendable {
             switch source {
             case .spotify: NSAppleScript(source: Self.controlSource(control, app: Self.spotifyName))?.executeAndReturnError(nil)
             case .music: NSAppleScript(source: Self.controlSource(control, app: Self.musicName))?.executeAndReturnError(nil)
-            case .other: sendOther(control)
+            case .other(let pid): sendOther(control, to: pid)
             }
         }
     }
 
     /// The Now Playing feed has no volume, so volume commands only work for Spotify and Music.
-    private func sendOther(_ control: SpotifyControl) {
+    private func sendOther(_ control: SpotifyControl, to pid: Int32) {
         switch control {
-        case .togglePlayPause: nowPlaying?.send(2)
-        case .next: nowPlaying?.send(4)
-        case .previous: nowPlaying?.send(5)
-        case .seek(let seconds): nowPlaying?.seek(seconds)
+        case .togglePlayPause: nowPlaying?.send(2, to: pid)
+        case .next: nowPlaying?.send(4, to: pid)
+        case .previous: nowPlaying?.send(5, to: pid)
+        case .seek(let seconds): nowPlaying?.seek(seconds, to: pid)
         case .setVolume, .volumeBy: break
         }
     }

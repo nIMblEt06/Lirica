@@ -14,14 +14,24 @@ enum MusicProvider: String, CaseIterable {
         }
     }
 
-    /// The provider an app on the Now Playing feed belongs to. Browsers count as Other Apps: the feed doesn't say
-    /// which site is playing, so YouTube Music in a browser is only recognised as Other Apps.
+    /// The provider an app on the Now Playing feed belongs to. The feed identifies a browser, not its tab. When the
+    /// user chose YouTube Music as the default, browser playback is therefore treated as YouTube Music; otherwise it
+    /// remains under Other Apps. Standalone YouTube Music clients identify themselves directly.
     static func of(bundle: String) -> MusicProvider {
         switch bundle {
-        case "com.spotify.client": .spotify
-        case "com.apple.Music": .appleMusic
-        default: bundle.lowercased().contains("youtube") && bundle.lowercased().contains("music") ? .youtubeMusic : .other
+        case "com.spotify.client": return .spotify
+        case "com.apple.Music": return .appleMusic
+        default:
+            let id = bundle.lowercased()
+            if id.contains("youtube") && id.contains("music") { return .youtubeMusic }
+            if defaultProvider == .youtubeMusic && isBrowser(id) { return .youtubeMusic }
+            return .other
         }
+    }
+
+    private static func isBrowser(_ id: String) -> Bool {
+        ["browser", "safari", "chrome", "chromium", "firefox", "edgemac", "brave", "opera", "vivaldi", "orion"]
+            .contains { id.contains($0) }
     }
 
     /// The default provider, stored in the Settings tab. Spotify until you choose otherwise.

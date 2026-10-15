@@ -10,9 +10,11 @@ MODE="${1:-}"
 if [[ "$MODE" == "release" ]]; then
   swift build -c release --arch arm64 --arch x86_64
   BIN=".build/apple/Products/Release/SpotifyWallpaper"
+  MEDIAREMOTE_BRIDGE=".build/apple/Products/Release/libLiricaMediaRemoteBridge.dylib"
 else
   swift build -c release
   BIN=".build/release/SpotifyWallpaper"
+  MEDIAREMOTE_BRIDGE=".build/release/libLiricaMediaRemoteBridge.dylib"
 fi
 
 APP="build/Lirica.app"
@@ -21,7 +23,9 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/"
 cp Info.plist "$APP/Contents/"
 cp -R Resources/web Resources/templates Resources/adapter Resources/AppIcon.icns "$APP/Contents/Resources/"
+cp "$MEDIAREMOTE_BRIDGE" "$APP/Contents/Resources/adapter/"
 cp ../CHANGELOG.md "$APP/Contents/Resources/web/ui/CHANGELOG.md"   # shown in What's New
+codesign --force --sign - "$APP/Contents/Resources/adapter/libLiricaMediaRemoteBridge.dylib"
 codesign --force --sign - "$APP"
 echo "Built $APP"
 

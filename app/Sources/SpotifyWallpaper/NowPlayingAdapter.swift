@@ -12,6 +12,9 @@ final class NowPlayingAdapter: @unchecked Sendable {
 
     private let script: URL
     private let framework: URL
+    private let bridgeScript: URL
+    private let bridgeLibrary: URL
+    private let hasBridge: Bool
     private let lock = NSLock()
     private var enabled = false
     private var closed = false
@@ -20,15 +23,22 @@ final class NowPlayingAdapter: @unchecked Sendable {
     private var buffer = Data()
     /// The merged feed: the latest value of each key, with nulls removed.
     private var state: [String: Any] = [:]
-    /// The track the artwork file belongs to, and that file.
-    private var artworkFor: String?
-    private var artworkFile = ""
+    /// Per-player snapshots from Lirica's bridge. The system's ordinary feed exposes only one of these at a time.
+    private var sessionStates: [Int32: [String: Any]] = [:]
+    private var currentPID: Int32?
+    /// Per-player artwork, retained when an unchanged snapshot omits its bytes.
+    private var artwork: [Int32: (trackID: String, file: String)] = [:]
     private var restart: DispatchWorkItem?
 
     init?(resources: URL) {
         script = resources.appendingPathComponent("adapter/mediaremote-adapter.pl")
         framework = resources.appendingPathComponent("adapter/MediaRemoteAdapter.framework")
-        guard FileManager.default.fileExists(atPath: script.path), FileManager.default.fileExists(atPath: framework.path) else {
+        bridgeScript = resources.appendingPathComponent("adapter/lirica-mediaremote.pl")
+        bridgeLibrary = resources.appendingPathComponent("adapter/libLiricaMediaRemoteBridge.dylib")
+        let fm = FileManager.default
+        hasBridge = fm.fileExists(atPath: bridgeScript.path) && fm.fileExists(atPath: bridgeLibrary.path)
+        let hasLegacy = fm.fileExists(atPath: script.path) && fm.fileExists(atPath: framework.path)
+        guard hasBridge || hasLegacy else {
             return nil
         }
     }
@@ -51,14 +61,37 @@ final class NowPlayingAdapter: @unchecked Sendable {
         stopLocked()
     }
 
-    /// The track in the feed and the app it's playing in, or nil. Paused tracks count, like paused Spotify: they stay
-    /// until that app quits or another one takes over the feed.
-    func current(now: Date) -> (track: Track, bundle: String)? {
+    struct Feed {
+        let track: Track
+        let bundle: String
+        let pid: Int32
+        let isCurrent: Bool
+    }
+
+    /// Every non-Spotify/non-Music player registered with MediaRemote. Paused tracks count, like paused Spotify,
+    /// and remain independently visible even when another app becomes the system's global Now Playing player.
+    func sessions(now: Date) -> [Feed] {
         lock.lock()
-        let s = state, artwork = artworkFor, file = artworkFile
+        let snapshots = sessionStates
+        let legacy = state
+        let selected = currentPID
+        let covers = artwork
         lock.unlock()
-        guard let id = Self.trackID(s), let bundle = s["bundleIdentifier"] as? String, !Self.directlyRead.contains(bundle),
-              let title = s["title"] as? String else { return nil }
+
+        if hasBridge {
+            return snapshots.compactMap { pid, snapshot in
+                Self.feed(snapshot, pid: pid, currentPID: selected, artwork: covers[pid], now: now)
+            }
+        }
+        return Self.feed(legacy, pid: 0, currentPID: 0, artwork: covers[0], now: now).map { [$0] } ?? []
+    }
+
+    private static func feed(_ s: [String: Any], pid: Int32, currentPID: Int32?,
+                             artwork: (trackID: String, file: String)?, now: Date) -> Feed? {
+        let ownBundle = s["bundleIdentifier"] as? String ?? ""
+        let parent = s["parentBundleIdentifier"] as? String ?? ""
+        let bundle = parent.isEmpty ? ownBundle : parent
+        guard let id = trackID(s), !directlyRead.contains(bundle), let title = s["title"] as? String else { return nil }
         let playing = s["playing"] as? Bool == true
         let rate = (s["playbackRate"] as? NSNumber)?.doubleValue ?? 1
         var position = Self.seconds(s["elapsedTimeMicros"])
@@ -66,25 +99,37 @@ final class NowPlayingAdapter: @unchecked Sendable {
             position += (now.timeIntervalSince1970 * 1_000_000 - stamp) / 1_000_000 * rate
         }
         let track = Track(id: id, title: title, artist: s["artist"] as? String ?? "", album: s["album"] as? String ?? "",
-                          artworkURL: artwork == id ? file : "", duration: Self.seconds(s["durationMicros"]),
+                          artworkURL: artwork?.trackID == id ? artwork?.file ?? "" : "",
+                          duration: Self.seconds(s["durationMicros"]),
                           position: max(0, position), isPlaying: playing)
-        return (track, bundle)
+        return Feed(track: track, bundle: bundle, pid: pid, isCurrent: pid == currentPID)
     }
 
     /// Plays, pauses or skips: MediaRemote commands 2 (toggle), 4 (next) and 5 (previous).
-    func send(_ command: Int) {
-        run(["send", String(command)])
+    func send(_ command: Int, to pid: Int32) {
+        if hasBridge { runBridge(["send", String(pid), String(command)]) }
+        else { runLegacy(["send", String(command)]) }
     }
 
     /// Seeks the playing app to `seconds`.
-    func seek(_ seconds: Double) {
-        run(["seek", String(Int(seconds * 1_000_000))])
+    func seek(_ seconds: Double, to pid: Int32) {
+        if hasBridge { runBridge(["seek", String(pid), String(seconds)]) }
+        else { runLegacy(["seek", String(Int(seconds * 1_000_000))]) }
     }
 
-    private func run(_ arguments: [String]) {
+    private func runLegacy(_ arguments: [String]) {
         let p = Process()
         p.executableURL = URL(fileURLWithPath: "/usr/bin/perl")
         p.arguments = [script.path, framework.path] + arguments
+        p.standardOutput = FileHandle.nullDevice
+        p.standardError = FileHandle.nullDevice
+        try? p.run()
+    }
+
+    private func runBridge(_ arguments: [String]) {
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/usr/bin/perl")
+        p.arguments = [bridgeScript.path, bridgeLibrary.path] + arguments
         p.standardOutput = FileHandle.nullDevice
         p.standardError = FileHandle.nullDevice
         try? p.run()
@@ -97,7 +142,9 @@ final class NowPlayingAdapter: @unchecked Sendable {
         restart = nil
         let p = Process()
         p.executableURL = URL(fileURLWithPath: "/usr/bin/perl")
-        p.arguments = [script.path, framework.path, "stream", "--micros"]
+        p.arguments = hasBridge
+            ? [bridgeScript.path, bridgeLibrary.path, "stream"]
+            : [script.path, framework.path, "stream", "--micros"]
         let out = Pipe()
         p.standardOutput = out
         p.standardError = FileHandle.nullDevice
@@ -129,9 +176,12 @@ final class NowPlayingAdapter: @unchecked Sendable {
 
     private func resetFeedLocked() {
         state = [:]
-        artworkFor = nil
-        if !artworkFile.isEmpty, let url = URL(string: artworkFile) { try? FileManager.default.removeItem(at: url) }
-        artworkFile = ""
+        sessionStates = [:]
+        currentPID = nil
+        for cover in artwork.values {
+            if let url = URL(string: cover.file) { try? FileManager.default.removeItem(at: url) }
+        }
+        artwork = [:]
     }
 
     /// The helper quit (macOS may have closed the feed): try again in a while, while still enabled.
@@ -167,35 +217,47 @@ final class NowPlayingAdapter: @unchecked Sendable {
     /// a null key has gone away.
     private func apply(_ line: Data) {
         guard let object = (try? JSONSerialization.jsonObject(with: line)) as? [String: Any],
-              object["type"] as? String == "data", let diff = object["diff"] as? Bool,
+              let type = object["type"] as? String else { return }
+        if type == "sessions", let sessions = object["sessions"] as? [[String: Any]] {
+            var next: [Int32: [String: Any]] = [:]
+            for session in sessions {
+                guard let pid = (session["processIdentifier"] as? NSNumber)?.int32Value else { continue }
+                next[pid] = session
+                updateArtwork(session, pid: pid)
+            }
+            for pid in Set(sessionStates.keys).subtracting(next.keys) { removeArtwork(pid) }
+            sessionStates = next
+            currentPID = (object["currentPID"] as? NSNumber)?.int32Value
+            return
+        }
+        guard type == "data", let diff = object["diff"] as? Bool,
               let payload = object["payload"] as? [String: Any] else { return }
         if diff {
             for (key, value) in payload { state[key] = value is NSNull ? nil : value }
         } else {
             state = payload.filter { !($0.value is NSNull) }
         }
-        updateArtwork()
+        updateArtwork(state, pid: 0)
     }
 
     /// Writes a new track's cover to a temporary file once the feed has it (it can arrive a moment after the title).
-    private func updateArtwork() {
-        guard let id = Self.trackID(state) else {
-            artworkFor = nil
-            return
-        }
-        if artworkFor == id { return }
-        guard let base64 = state["artworkData"] as? String, let data = Data(base64Encoded: base64) else {
-            artworkFor = nil
-            return
-        }
-        if !artworkFile.isEmpty, let old = URL(string: artworkFile) { try? FileManager.default.removeItem(at: old) }
+    private func updateArtwork(_ state: [String: Any], pid: Int32) {
+        guard let id = Self.trackID(state) else { removeArtwork(pid); return }
+        if artwork[pid]?.trackID == id { return }
+        removeArtwork(pid)
+        guard let base64 = state["artworkData"] as? String, let data = Data(base64Encoded: base64) else { return }
         let mime = state["artworkMimeType"] as? String ?? ""
         let hash = id.utf8.reduce(UInt64(5381)) { $0 &* 33 &+ UInt64($1) }
         let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("swnowplaying-\(hash).\(mime.contains("png") ? "png" : "jpg")")
+            .appendingPathComponent("swnowplaying-\(pid)-\(hash).\(mime.contains("png") ? "png" : "jpg")")
         guard (try? data.write(to: url, options: .atomic)) != nil else { return }
-        artworkFor = id
-        artworkFile = url.absoluteString
+        artwork[pid] = (id, url.absoluteString)
+    }
+
+    private func removeArtwork(_ pid: Int32) {
+        if let file = artwork.removeValue(forKey: pid)?.file, let url = URL(string: file) {
+            try? FileManager.default.removeItem(at: url)
+        }
     }
 
     // MARK: helpers

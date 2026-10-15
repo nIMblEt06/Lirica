@@ -37,6 +37,11 @@ final class WallpaperSetter {
         slot[id] = next
         let url = frameURL(id, next)
         do {
+            // restore() leaves symlinks here so every Space can show the user's wallpaper without Lirica reading a
+            // protected source folder. Remove the link before writing, never follow it into the user's original.
+            if (try? url.resourceValues(forKeys: [.isSymbolicLinkKey]).isSymbolicLink) == true {
+                try FileManager.default.removeItem(at: url)
+            }
             try data.write(to: url, options: .atomic)
             try NSWorkspace.shared.setDesktopImageURL(url, for: screen, options: [:])
         } catch {
@@ -65,15 +70,17 @@ final class WallpaperSetter {
         originals = o
     }
 
-    /// A real wallpaper the user chose: exists, and isn't a frame from this app or the old Python prototype.
+    /// A real wallpaper the user chose, rather than a frame from this app or the old Python prototype. Do not stat
+    /// the source here: it may live in Downloads, Pictures or another privacy-protected folder.
     private static func isUserWallpaper(_ url: URL) -> Bool {
         let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0].path
         let ours = [caches + "/Spotify Wallpaper", caches + "/spotify-wallpaper"]
-        return FileManager.default.fileExists(atPath: url.path) && !ours.contains { url.path.hasPrefix($0) }
+        return !ours.contains { url.path.hasPrefix($0) }
     }
 
     /// Puts the user's own wallpaper back. Spaces we can't reach right now still point at our two frame
-    /// files, so the original image is written into those too.
+    /// files, so turn both into symlinks to the original. Creating a link does not read the source image, avoiding
+    /// a surprising Downloads/Pictures permission prompt when Lirica quits.
     func restore() {
         guard showing else { return }
         showing = false
@@ -81,12 +88,17 @@ final class WallpaperSetter {
         let o = originals
         for screen in NSScreen.screens {
             let id = displayID(screen)
-            guard let path = o[String(id)] ?? o.values.first, FileManager.default.fileExists(atPath: path) else { continue }
-            let url = URL(fileURLWithPath: path)
-            if let image = NSImage(contentsOf: url), let jpeg = jpegData(image) {
-                for s in 0...1 { try? jpeg.write(to: frameURL(id, s), options: .atomic) }
+            guard let path = o[String(id)] ?? o.values.first else { continue }
+            for s in 0...1 {
+                let frame = frameURL(id, s)
+                try? FileManager.default.removeItem(at: frame)
+                try? FileManager.default.createSymbolicLink(atPath: frame.path, withDestinationPath: path)
             }
-            try? NSWorkspace.shared.setDesktopImageURL(url, for: screen, options: [:])
+            let current = NSWorkspace.shared.desktopImageURL(for: screen)?.standardizedFileURL
+            var next = (slot[id] ?? 0) ^ 1
+            if frameURL(id, next).standardizedFileURL == current { next ^= 1 }
+            slot[id] = next
+            try? NSWorkspace.shared.setDesktopImageURL(frameURL(id, next), for: screen, options: [:])
         }
     }
 }

@@ -70,7 +70,7 @@ with sliders or rewrite completely.
 - **Customizable:** each template's settings (colors, fonts, sizes, lines shown, blur, grain, animation) appear in
   the app's Home window next to a live preview. You can also duplicate a template and edit its HTML/CSS directly; it
   reloads as you save.
-- **No login or API key.** It reads the Spotify desktop app directly.
+- **No login or API key.** It reads Spotify and Apple Music directly, and other players from macOS Now Playing.
 - **Controls on the wallpaper itself:** templates can put real controls on your desktop — click play/pause and
   skip, drag a progress bar to seek, and in Classic scroll the iPod's click wheel for the volume. Clicks reach the
   page only while the pointer is over a control, so icons, right-clicks and drags on the rest of the desktop behave
@@ -219,11 +219,11 @@ web pages, so only install ones from people you trust.
 ## How it works
 
 ```
-Spotify app ──notifications + a light check each second, on a background thread──▶ Engine ──▶ lyrics: LRCLIB + NetEase + QQ Music + Kugou → consensus timing
-                                           │         cover art → colors via k-means
-                                           │
-                     ┌─────────────────────┴──────────────────────┐
-                     ▼                                            ▼
+Spotify / Apple Music / per-app Now Playing sessions ──background monitor──▶ Engine ──▶ lyrics: LRCLIB + NetEase + QQ Music + Kugou → consensus timing
+                                                                         │         cover art → colors via k-means
+                                                                         │
+                                                   ┌─────────────────────┴──────────────────────┐
+                                                   ▼                                            ▼
    Live layer (per screen)                          Still (per screen, on track change)
    WKWebView in a window just above the             same template rendered off-screen, snapshotted
    wallpaper and below the desktop icons,           and set as the real wallpaper via NSWorkspace
@@ -239,10 +239,13 @@ Spotify app ──notifications + a light check each second, on a background thr
   Kugou) count once. Results are cached per song.
 - Templates are served from a private `sw://` URL scheme, so they load the shared runtime, the cover and system
   fonts without any local server.
+- Now Playing apps are read as independent sessions, so the default player can keep winning when Spotify and a
+  browser are active together. macOS exposes the browser, not its tab, so browser media counts as YouTube Music when
+  **YouTube Music** is selected as the default.
 - macOS only sets the wallpaper of the current Space, so the still is re-applied when you switch Spaces. With
   "Show on all Spaces" on, it applies to all of them at once. Each screen alternates between two files, because
   macOS caches wallpapers by path.
-- Your original wallpaper is remembered and restored on quit, on pause and when Spotify stops.
+- Your original wallpaper is remembered and restored on quit, on pause and when the followed player stops.
 
 ## Build from source
 

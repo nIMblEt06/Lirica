@@ -1063,7 +1063,7 @@ function renderSettings() {
     ]),
     card("Music data", [
       row("Weather", "Uses your approximate location and Open-Meteo, for Weather & Time and other templates.", tg("useWeather", "Weather")),
-      row("Default music player", "Lirica follows this player when it starts playing, and switches to whatever plays after an hour of silence. Clicking controls never switches it.",
+      row("Default music player", "Lirica follows this player when it starts playing, and switches to whatever plays after an hour of silence. When YouTube Music is the default, browser playback counts as YouTube Music. Clicking controls never switches players.",
         seg("musicPriority", [["spotify", "Spotify"], ["appleMusic", "Apple Music"], ["youtubeMusic", "YouTube Music"], ["other", "Other Apps"]])),
       row("Other players", "Browsers, YouTube and any app on the Mac's Now Playing feed. Uses a helper that a macOS update may stop supporting.", tg("otherPlayers", "Other players")),
       row("Wallpaper controls", "Controls stay on the desktop and never cover or activate your application windows.", tg("wallpaperControls", "Wallpaper controls")),
