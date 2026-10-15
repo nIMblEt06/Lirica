@@ -1,0 +1,82 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/runtime/runtime.css">
+<script src="/runtime/runtime.js"></script>
+<style>
+  body { color: #FFE7B0; background: #120806; font-family: -apple-system, "SF Pro Text", sans-serif; }
+  .glow { position: absolute; inset: 0; background: radial-gradient(ellipse 45% 60% at 50% 55%, var(--param-body) 0%, transparent 70%); opacity: 0.35; }
+  .cab {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: 46vmin; height: 80vmin; box-sizing: border-box; padding: 7vmin 4.5vmin 5vmin;
+    display: flex; flex-direction: column; align-items: center;
+    border-radius: 23vmin 23vmin 3vmin 3vmin / 15vmin 15vmin 3vmin 3vmin;
+    background: linear-gradient(90deg, #5a0f14, var(--param-body) 45%, #5a0f14);
+    box-shadow: inset 0 0 0 0.3vmin rgba(255, 210, 140, 0.35), 0 4vmin 10vmin rgba(0, 0, 0, 0.6);
+  }
+  .tube {
+    width: 100%; height: 34vmin; box-sizing: border-box; padding: 3vmin 3.5vmin;
+    border-radius: 17vmin 17vmin 2vmin 2vmin; border: 0.35vmin solid rgba(255, 210, 140, 0.55);
+    background: rgba(255, 220, 160, 0.1); box-shadow: inset 0 0 7vmin rgba(255, 190, 90, 0.28);
+    display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;
+  }
+  .line { font-family: var(--param-font); font-size: 2.8vmin; line-height: 1.3; color: #FFF0CC; text-shadow: 0 0 1.5vmin rgba(255, 190, 90, 0.9); }
+  .artist { font-size: 1.5vmin; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.7; margin-top: 1.8vmin; }
+  .seek {
+    width: 36vmin; height: 1.1vmin; margin-top: 4vmin; border-radius: 1vmin; color: #FFC55A;
+    background: rgba(255, 200, 120, 0.18); box-shadow: 0 0 1.5vmin rgba(255, 180, 80, 0.4);
+  }
+  .knob-row { display: flex; align-items: center; gap: 2.2vmin; margin-top: 5vmin; }
+  .knob {
+    width: 9vmin; height: 9vmin; border-radius: 50%; position: relative;
+    background: conic-gradient(from 200deg, #e8e8ea, #7c7c82, #f4f4f6, #6d6d73, #e8e8ea);
+    box-shadow: 0 0.7vmin 1.6vmin rgba(0, 0, 0, 0.55), inset 0 0 0 0.25vmin rgba(255, 255, 255, 0.4);
+  }
+  .knob::after { content: ""; position: absolute; left: 50%; top: 10%; width: 0.6vmin; height: 26%; margin-left: -0.3vmin; border-radius: 0.3vmin; background: #2a1a10; }
+  .vol-label { font-size: 1.3vmin; letter-spacing: 0.2em; opacity: 0.7; }
+  .buttons { margin-top: auto; display: flex; gap: 3.4vmin; align-items: center; }
+  .btn {
+    width: 9vmin; height: 9vmin; border-radius: 50%; display: grid; place-items: center;
+    box-shadow: 0 0.9vmin 0 rgba(0, 0, 0, 0.45), inset 0 -0.6vmin 0 rgba(0, 0, 0, 0.22), inset 0 0.5vmin 0 rgba(255, 255, 255, 0.3);
+  }
+  .btn svg { width: 3.6vmin; height: 3.6vmin; fill: #fff; display: block; }
+  .b-prev { background: #F2B63A; }
+  .b-pp { background: #39B86B; width: 11vmin; height: 11vmin; }
+  .b-pp svg { width: 4.2vmin; height: 4.2vmin; }
+  .b-next { background: #3C8DF0; }
+  .b-pp .i-play, .b-pp .i-pause { display: none; }
+  html:not(.is-playing) .b-pp .i-play { display: block; }
+  html.is-playing .b-pp .i-pause { display: block; }
+  .sw-grain { opacity: 0.14; }
+</style>
+</head>
+<body>
+  <div class="glow"></div>
+  <div class="cab">
+    <div class="tube">
+      <div class="line" data-show="lyrics.hasLyrics" data-bind="lyrics.current"></div>
+      <div class="line" data-show="!lyrics.hasLyrics" data-bind="track.title"></div>
+      <div class="artist" data-bind="track.artist"></div>
+    </div>
+    <progress-bar class="seek" data-control="seek" data-show="params.controls"></progress-bar>
+    <div class="knob-row" data-control="volume" data-show="params.controls">
+      <div class="knob"></div>
+      <div class="vol-label">VOLUME</div>
+    </div>
+    <div class="buttons" data-show="params.controls">
+      <div class="btn b-prev" data-control="previous" role="button" aria-label="Previous">
+        <svg viewBox="0 0 24 24"><path d="M6 5h2.6v14H6zM20 5v14L9.3 12z"/></svg>
+      </div>
+      <div class="btn b-pp" data-control="playPause" role="button" aria-label="Play or pause">
+        <svg class="i-play" viewBox="0 0 24 24"><path d="M7 4.2v15.6L20 12z"/></svg>
+        <svg class="i-pause" viewBox="0 0 24 24"><path d="M6.8 4.5h3.5v15H6.8zM13.7 4.5h3.5v15h-3.5z"/></svg>
+      </div>
+      <div class="btn b-next" data-control="next" role="button" aria-label="Next">
+        <svg viewBox="0 0 24 24"><path d="M15.4 5H18v14h-2.6zM4 5v14l10.7-7z"/></svg>
+      </div>
+    </div>
+  </div>
+  <div class="sw-grain" data-show="params.grain"></div>
+</body>
+</html>

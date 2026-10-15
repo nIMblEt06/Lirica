@@ -1,0 +1,32 @@
+{
+  "name": "Jukebox",
+  "description": "An arcade jukebox: the lyric glows in the tube, the coloured buttons skip and play, the knob turns the volume with a scroll, and the neon bar seeks.",
+  "author": "Built-in",
+  "category": "objects",
+  "params": [
+    {
+      "key": "body",
+      "type": "color",
+      "label": "Cabinet color",
+      "default": "#8E1A20"
+    },
+    {
+      "key": "font",
+      "type": "font",
+      "label": "Lyric font",
+      "default": "Avenir Next"
+    },
+    {
+      "key": "controls",
+      "type": "bool",
+      "label": "Playback controls",
+      "default": true
+    },
+    {
+      "key": "grain",
+      "type": "bool",
+      "label": "Film grain",
+      "default": true
+    }
+  ]
+}

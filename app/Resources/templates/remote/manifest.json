@@ -1,0 +1,26 @@
+{
+  "name": "Remote",
+  "description": "A glass remote on a blurred cover: the pad turns the volume with a scroll, the centre plays and pauses, the sides skip, and the bar below seeks.",
+  "author": "Built-in",
+  "category": "objects",
+  "params": [
+    {
+      "key": "tint",
+      "type": "color",
+      "label": "Glow color",
+      "default": "auto:vibrant"
+    },
+    {
+      "key": "controls",
+      "type": "bool",
+      "label": "Playback controls",
+      "default": true
+    },
+    {
+      "key": "grain",
+      "type": "bool",
+      "label": "Film grain",
+      "default": true
+    }
+  ]
+}

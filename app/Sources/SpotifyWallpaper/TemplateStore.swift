@@ -29,7 +29,7 @@ final class TemplateStore {
     private(set) var templates: [WallpaperTemplate] = []
     private let paths: Paths
     private let defaults: UserDefaults
-    private static let builtinOrder = ["card", "poster", "minimal", "glow", "vinyl", "typewriter", "lockscreen", "visualizer", "brushwork", "painted-cover", "painted-cover-wide", "cassette", "liner-notes", "weather", "departure-board", "riso", "swiss-grid", "hardware-panel", "film-strip", "albers", "breathing-type", "receipt", "one-bit", "teletext", "text-mode", "contour-map", "classic", "stained-glass"]
+    private static let builtinOrder = ["card", "poster", "minimal", "glow", "vinyl", "typewriter", "lockscreen", "visualizer", "brushwork", "painted-cover", "painted-cover-wide", "cassette", "liner-notes", "weather", "departure-board", "riso", "swiss-grid", "hardware-panel", "film-strip", "albers", "breathing-type", "receipt", "one-bit", "teletext", "text-mode", "contour-map", "classic", "stained-glass", "remote", "jukebox", "island"]
 
     /// Fires after any `setActive` (all screens or one), i.e. whenever what a screen shows may have changed.
     var onActiveChanged: (() -> Void)?
