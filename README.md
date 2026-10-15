@@ -277,6 +277,12 @@ release; installed copies update themselves from it.
 - To pick the version, set it in `app/Info.plist` (e.g. `1.5.0`). Otherwise the patch number is bumped.
 - Add a `## <version>` section to `CHANGELOG.md`; it becomes the release notes and shows in **What's New**.
 - Only changes under `app/` (or the changelog) trigger a release. You can also run it from the Actions tab.
+- **Keep the zip in every release.** Copies of the app older than 1.7.1 update only from a `.zip` asset: they
+  find it through the GitHub API, unzip it, take the first `.app`, match the bundle identifier
+  (`com.shashvat.spotifywallpaper`) and verify its signature. The workflow checks exactly that on each run —
+  drop the zip only once nothing older than 1.7.1 is left.
+- **Keep the old repository name working.** Those same copies call `shashvat1965/spotify-wallpaper`; GitHub
+  redirects it to this repo (`shashvat1965/Lirica`), so don't create another repository under the old name.
 
 README screenshots are generated with the bundled sample song:
 

@@ -58,12 +58,23 @@ jobs:
           lipo -archs "build/Lirica.app/Contents/MacOS/SpotifyWallpaper"
           codesign --verify --deep --strict "build/Lirica.app"
           hdiutil verify "build/Lirica-${{ steps.version.outputs.version }}.dmg"
+          # The zip is what copies of the app older than 1.7.1 update from. Check it the way they do:
+          # unzip, take the first .app, match the bundle identifier, verify the signature.
+          v="${{ steps.version.outputs.version }}"
+          work=$(mktemp -d)
+          ditto -x -k "build/Lirica-$v.zip" "$work"
+          legacy=$(find "$work" -maxdepth 1 -name "*.app" | head -1)
+          test "$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$legacy/Contents/Info.plist")" = "com.shashvat.spotifywallpaper"
+          test "$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$legacy/Contents/Info.plist")" = "$v"
+          codesign --verify --deep --strict "$legacy"
 
       - name: Release notes
         run: python3 .github/scripts/release_notes.py "${{ steps.version.outputs.version }}" "${{ steps.version.outputs.previous }}" > notes.md
 
       - name: Publish
         run: |
+          # The disk image is the download for people; the zip must keep shipping while copies of the
+          # app older than 1.7.1 exist, because those look for a .zip asset and know nothing about DMGs.
           v="${{ steps.version.outputs.version }}"
           gh release create "v$v" "app/build/Lirica-$v.dmg" "app/build/Lirica-$v.zip" \
             --title "Lirica $v" --notes-file notes.md --target "$GITHUB_SHA"

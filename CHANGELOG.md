@@ -2,6 +2,12 @@
 
 All notable changes to Lirica. Versions follow [semantic versioning](https://semver.org).
 
+## 1.7.2 — 2026-10-15
+
+### Changed
+- Every release now checks the zip that copies older than 1.7.1 update from — unzipped, identifier matched,
+  signature verified — so that path can't break silently while older copies are around.
+
 ## 1.7.1 — 2026-10-15
 
 ### Changed
