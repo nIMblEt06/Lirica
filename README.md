@@ -1,4 +1,4 @@
-# Spotify Wallpaper
+# Lirica
 
 A macOS menu bar app that turns your desktop into whatever Spotify is playing: the cover art plus **live, synced
 lyrics** that animate line by line, on every Space and every monitor. Designs are HTML/CSS templates you can tweak
@@ -82,13 +82,13 @@ See what changed in each version in the **[changelog](CHANGELOG.md)**, or in the
 
 ## Install
 
-1. Download **Spotify-Wallpaper-x.y.zip** from the [latest release](../../releases/latest) and unzip it.
-2. Move **Spotify Wallpaper.app** to **/Applications**.
+1. Download **Lirica-x.y.zip** from the [latest release](../../releases/latest) and unzip it.
+2. Move **Lirica.app** to **/Applications**.
 3. The app isn't notarized by Apple, so the first time, **right-click it → Open → Open**. Or run:
    ```sh
-   xattr -dr com.apple.quarantine "/Applications/Spotify Wallpaper.app"
+   xattr -dr com.apple.quarantine "/Applications/Lirica.app"
    ```
-4. When macOS asks whether Spotify Wallpaper may **control Spotify** (and later **Music**, if you use Apple Music), click
+4. When macOS asks whether Lirica may **control Spotify** (and later **Music**, if you use Apple Music), click
    **OK**. That's how it reads what's playing — and how the controls on your wallpaper talk to the player.
 
 Requires macOS 14 Sonoma or later and the Spotify desktop app. It runs natively on Apple Silicon and Intel.
@@ -106,7 +106,7 @@ Everything is in the ♪ menu bar icon:
 
 | Menu item | What it does |
 |---|---|
-| **Open Spotify Wallpaper… (⌘O)** | Home: a live preview with each template's settings, a shelf of recent and favourite templates, the full gallery, a template per display, the History Wall, and lyrics source and timing. Also opens when you open the app again from Finder or the Dock |
+| **Open Lirica… (⌘O)** | Home: a live preview with each template's settings, a shelf of recent and favourite templates, the full gallery, a template per display, the History Wall, and lyrics source and timing. Also opens when you open the app again from Finder or the Dock |
 | **Template Builder…** | Design a new template visually, no code |
 | **Lyrics** | Nudge this song's timing earlier or later (remembered per song). Pick the source or search again in Home's Lyrics tab |
 | **Refresh Rate** | Display maximum, 60, 30 or 15 fps for the animation. Lyric timing is exact at any rate |
@@ -162,7 +162,7 @@ ultrawide. Designs are saved as normal templates in the templates folder, so the
 ### With code
 
 A template is a folder with a `manifest.json` (name and settings) and an `index.html`. The quickest start is
-**Open Spotify Wallpaper → pick a template → ⋯ → Duplicate & edit code**. That copies it to
+**Open Lirica → pick a template → ⋯ → Duplicate & edit code**. That copies it to
 `~/Library/Application Support/Spotify Wallpaper/Templates/`, and the preview and desktop reload every time you save.
 
 ```html
@@ -208,7 +208,7 @@ templates folder.
 ### Sharing templates
 
 A template travels as one `.swtemplate` file (the template folder, zipped). In the app's window, open a template's
-**⋯** menu and choose **Export “…”…**; send the file to anyone with Spotify Wallpaper, who double-clicks it
+**⋯** menu and choose **Export “…”…**; send the file to anyone with Lirica, who double-clicks it
 (or uses **Import template…**) to install it. Built-in templates export too, so you can share a tuned copy.
 
 To install from the web, link to `spotify-wallpaper://install?url=<https address of a .swtemplate>`. The app
@@ -261,7 +261,7 @@ cd app
 See what every lyrics source returns for a song, and the combined timing:
 
 ```sh
-"app/build/Spotify Wallpaper.app/Contents/MacOS/SpotifyWallpaper" --lyrics "Blinding Lights" "The Weeknd" "After Hours" 200
+"app/build/Lirica.app/Contents/MacOS/SpotifyWallpaper" --lyrics "Blinding Lights" "The Weeknd" "After Hours" 200
 ```
 
 ### Releasing
@@ -276,7 +276,7 @@ universal app on a macOS runner and publishes a GitHub release, and installed co
 README screenshots are generated with the bundled sample song:
 
 ```sh
-"app/build/Spotify Wallpaper.app/Contents/MacOS/SpotifyWallpaper" --screenshots docs/screenshots
+"app/build/Lirica.app/Contents/MacOS/SpotifyWallpaper" --screenshots docs/screenshots
 ```
 
 `prototype/` holds the original Python proof of concept, which drew frames with Pillow. It's kept for reference and

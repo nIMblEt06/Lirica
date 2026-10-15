@@ -1,5 +1,5 @@
 #!/bin/bash
-# Builds "Spotify Wallpaper.app" into build/.
+# Builds "Lirica.app" into build/.
 #   ./build.sh            build for this Mac
 #   ./build.sh install    build, copy to /Applications and launch
 #   ./build.sh release    universal (Apple Silicon + Intel) build, zipped for a GitHub release
@@ -15,7 +15,7 @@ else
   BIN=".build/release/SpotifyWallpaper"
 fi
 
-APP="build/Spotify Wallpaper.app"
+APP="build/Lirica.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/"
@@ -27,17 +27,17 @@ echo "Built $APP"
 
 case "$MODE" in
   install)
-    osascript -e 'quit app "Spotify Wallpaper"' 2>/dev/null || true
-    pkill -TERM -f "Spotify Wallpaper.app/Contents/MacOS/SpotifyWallpaper" 2>/dev/null || true
+    osascript -e 'quit app "Lirica"' 2>/dev/null || true
+    pkill -TERM -f "Lirica.app/Contents/MacOS/SpotifyWallpaper" 2>/dev/null || true
     sleep 2
-    rm -rf "/Applications/Spotify Wallpaper.app"
+    rm -rf "/Applications/Lirica.app"
     cp -R "$APP" /Applications/
-    open "/Applications/Spotify Wallpaper.app"
+    open "/Applications/Lirica.app"
     echo "Installed to /Applications"
     ;;
   release)
     VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" Info.plist)
-    ZIP="build/Spotify-Wallpaper-$VERSION.zip"
+    ZIP="build/Lirica-$VERSION.zip"
     rm -f "$ZIP"
     ditto -c -k --keepParent "$APP" "$ZIP"
     echo "Packaged $ZIP"

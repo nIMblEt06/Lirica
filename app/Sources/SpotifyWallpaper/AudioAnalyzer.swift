@@ -14,7 +14,7 @@ final class AudioAnalyzer: NSObject, SCStreamOutput, SCStreamDelegate, @unchecke
     /// Main thread: the system stopped the capture (Spotify quit, permission revoked, display gone).
     var onStopped: (@MainActor () -> Void)?
 
-    private let queue = DispatchQueue(label: "Spotify Wallpaper audio", qos: .userInitiated)
+    private let queue = DispatchQueue(label: "Lirica audio", qos: .userInitiated)
     private var stream: SCStream?  // main thread
     // queue only
     private var detector: OnsetDetector?

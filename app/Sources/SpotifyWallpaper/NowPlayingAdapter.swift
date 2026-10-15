@@ -14,6 +14,7 @@ final class NowPlayingAdapter: @unchecked Sendable {
     private let framework: URL
     private let lock = NSLock()
     private var enabled = false
+    private var closed = false
     private var process: Process?
     private var pipe: Pipe?
     private var buffer = Data()
@@ -36,9 +37,18 @@ final class NowPlayingAdapter: @unchecked Sendable {
     func setEnabled(_ on: Bool) {
         lock.lock()
         defer { lock.unlock() }
-        guard on != enabled else { return }
+        guard on != enabled, !closed else { return }
         enabled = on
         if on { launchLocked() } else { stopLocked() }
+    }
+
+    /// Stops the helper for good, when the app quits. Otherwise it would outlive the app.
+    func shutdown() {
+        lock.lock()
+        defer { lock.unlock() }
+        closed = true
+        enabled = false
+        stopLocked()
     }
 
     /// The track playing right now in the feed and the app playing it, or nil. Paused media isn't reported: it would

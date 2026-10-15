@@ -1,4 +1,4 @@
-# Spotify Wallpaper template guide
+# Lirica template guide
 
 Don't want to write code? Use **Template Builder…** in the menu: it makes templates visually, and its **Edit Code**
 button turns any design into an HTML template you can keep editing here.
@@ -7,12 +7,12 @@ A template is a folder with two files:
 
 ```
 my-template/
-  manifest.json   name, description, category and the settings shown in Spotify Wallpaper's inspector
+  manifest.json   name, description, category and the settings shown in Lirica's inspector
   index.html      the wallpaper: plain HTML + CSS (+ optional JS)
 ```
 
 Put it in this folder (`~/Library/Application Support/Spotify Wallpaper/Templates`). The easiest start is
-**Open Spotify Wallpaper → pick a template → ⋯ → Duplicate & edit code**. While a custom template is being edited, the preview and
+**Open Lirica → pick a template → ⋯ → Duplicate & edit code**. While a custom template is being edited, the preview and
 the wallpaper reload every time you save.
 
 Each template runs in two ways:

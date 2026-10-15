@@ -223,6 +223,7 @@ final class Engine {
     func shutdown() {
         hideLayers()
         setter.restore()
+        spotify.nowPlaying?.shutdown()
     }
 
     /// Redraw everything, e.g. after switching templates.
@@ -608,10 +609,10 @@ extension Engine {
         let alert = NSAlert()
         alert.messageText = "Sync to the Beat needs Screen Recording"
         alert.informativeText = """
-            Spotify Wallpaper listens to Spotify's sound to find the beat; macOS files that under screen recording. \
+            Lirica listens to Spotify's sound to find the beat; macOS files that under screen recording. \
             Nothing is recorded or saved.
 
-            Turn on Spotify Wallpaper in System Settings › Privacy & Security › Screen & System Audio Recording, \
+            Turn on Lirica in System Settings › Privacy & Security › Screen & System Audio Recording, \
             then choose Sync to the Beat again (macOS may ask you to reopen the app first).
             """
         alert.addButton(withTitle: "Open System Settings")

@@ -43,7 +43,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         installEditMenu()
         handleTermination()
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        statusItem.button?.image = NSImage(systemSymbolName: "music.note", accessibilityDescription: "Spotify Wallpaper")
+        statusItem.button?.image = NSImage(systemSymbolName: "music.note", accessibilityDescription: "Lirica")
         let menu = NSMenu()
         menu.delegate = self
         statusItem.menu = menu
@@ -182,7 +182,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(.separator())
 
         let ctrlOptCmd: NSEvent.ModifierFlags = [.control, .option, .command]
-        add(menu, "Open Spotify Wallpaper…", #selector(openHome), "o")
+        add(menu, "Open Lirica…", #selector(openHome), "o")
         add(menu, "Quick Switcher…", #selector(toggleQuickSwitcher), "w").keyEquivalentModifierMask = ctrlOptCmd
         menu.addItem(.separator())
         let share = add(menu, "Share Lyric Card", #selector(shareLyricCard), "l")
@@ -203,7 +203,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             menu.addItem(note)
         }
         add(menu, "Settings…", #selector(openSettingsTab), ",")
-        add(menu, "Quit Spotify Wallpaper", #selector(quit), "q")
+        add(menu, "Quit Lirica", #selector(quit), "q")
     }
 
     @discardableResult
@@ -286,7 +286,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let appItem = NSMenuItem()
         let appMenu = NSMenu()
         appMenu.addItem(withTitle: "Close Window", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
-        appMenu.addItem(withTitle: "Quit Spotify Wallpaper", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appMenu.addItem(withTitle: "Quit Lirica", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         appItem.submenu = appMenu
         main.addItem(appItem)
         let editItem = NSMenuItem()

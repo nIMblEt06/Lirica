@@ -23,7 +23,7 @@ final class QuickSwitcher: NSObject, WKScriptMessageHandler, NSWindowDelegate {
     var onToggleFocus: (() -> Void)?
     var isFocusOn: (() -> Bool)?
     var onOpenHistory: (() -> Void)?
-    /// ⌘↩ on a template (its id), or the "Open Spotify Wallpaper" action (nil).
+    /// ⌘↩ on a template (its id), or the "Open Lirica" action (nil).
     var onOpenHome: ((String?) -> Void)?
     /// The thumbnail for a template; ThumbnailService can supply versioned URLs. A 404 shows a category tile.
     var thumbURL: ((String) -> String)?
@@ -265,7 +265,7 @@ final class QuickSwitcher: NSObject, WKScriptMessageHandler, NSWindowDelegate {
                 ? "Puts the song back on your desktop." : "Restores your own wallpaper until you resume."],
             ["id": "history", "icon": "history", "title": "Open History Wall", "sub": "Every song's wallpaper", "enabled": true,
              "keywords": "history wall gallery past saved", "desc": "The gallery of every wallpaper you've had, grouped by month."],
-            ["id": "home", "icon": "home", "title": "Open Spotify Wallpaper", "sub": "Home", "enabled": true,
+            ["id": "home", "icon": "home", "title": "Open Lirica", "sub": "Home", "enabled": true,
              "keywords": "home open settings customize window main",
              "desc": "The main window: templates and their settings, displays, history and lyrics."],
         ]

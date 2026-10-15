@@ -1081,11 +1081,11 @@ function renderSettings() {
         btn("openTemplatesFolder", "Open templates folder") + btn("openBuilder", "Template Builder") + `<button type="button" class="mbtn sm" data-reload>Reload templates</button>`),
     ]),
     card("Updates", [
-      row(`Spotify Wallpaper ${esc(v.version || "")}`, v.updateStatus || "Updates come from GitHub releases.", "", btn("checkUpdates", "Check for updates") + btn("whatsNew", "What's new")),
+      row(`Lirica ${esc(v.version || "")}`, v.updateStatus || "Updates come from GitHub releases.", "", btn("checkUpdates", "Check for updates") + btn("whatsNew", "What's new")),
       row("Install updates automatically", "", tg("autoUpdate", "Install updates automatically")),
     ]),
     card("Keyboard", [
-      row("Open Spotify Wallpaper", "", kb("⌘O")), row("Quick Switcher", "", kb("⌃⌥⌘W")),
+      row("Open Lirica", "", kb("⌘O")), row("Quick Switcher", "", kb("⌃⌥⌘W")),
       row("Share lyric card", "", kb("⌃⌥⌘L")), row("Focus Mode", "", kb("⌃⌥⌘F")), row("Tabs in this window", "", kb("⌘1–5")),
     ]),
   ].join("");

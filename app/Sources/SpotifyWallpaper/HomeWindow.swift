@@ -1,7 +1,7 @@
 import AppKit
 import WebKit
 
-/// Home ("Spotify Wallpaper"), the app's main window, as a web UI (ui/home.html):
+/// Home ("Lirica"), the app's main window, as a web UI (ui/home.html):
 ///  - Wallpaper: a live preview of the template on a display, its settings in a floating inspector, a shelf of
 ///    recent and favourite templates, and "Browse all" (a categorised gallery, or a record-crate view)
 ///  - Displays: the real display arrangement; drop a template on a screen to set that screen only
@@ -43,7 +43,7 @@ final class HomeWindowController: NSWindowController, WKScriptMessageHandler, NS
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1180, height: 760),
                               styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
                               backing: .buffered, defer: false)
-        window.title = "Spotify Wallpaper"
+        window.title = "Lirica"
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
         window.minSize = NSSize(width: 900, height: 620)

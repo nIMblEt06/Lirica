@@ -245,7 +245,7 @@ enum HistoryExport {
         let white = NSColor(srgbRed: 0.95, green: 0.95, blue: 0.96, alpha: 1), grey = NSColor(srgbRed: 0.63, green: 0.63, blue: 0.65, alpha: 1)
         draw(heading, in: CGRect(x: margin, y: margin, width: CGFloat(width) - margin * 2, height: 40),
              font: .systemFont(ofSize: 30, weight: .bold), color: white)
-        draw("Spotify Wallpaper · listening history", in: CGRect(x: margin, y: margin + 40, width: CGFloat(width) - margin * 2, height: 24),
+        draw("Lirica · listening history", in: CGRect(x: margin, y: margin + 40, width: CGFloat(width) - margin * 2, height: 24),
              font: .systemFont(ofSize: 15, weight: .regular), color: grey)
 
         for (i, item) in items.enumerated() {

@@ -21,7 +21,7 @@ enum TemplatePackage {
         var errorDescription: String? {
             switch self {
             case .tooBig: return "The template is larger than \(maxBytes / 1024 / 1024) MB."
-            case .notZip: return "This isn't a Spotify Wallpaper template file."
+            case .notZip: return "This isn't a Lirica template file."
             case .unsafe(let s): return "The template contains an unsafe file (\(s))."
             case .missing(let s): return "The template has no \(s)."
             case .badManifest: return "The template's manifest.json can't be read."
@@ -269,7 +269,7 @@ final class TemplateInstaller {
         panel.allowedContentTypes = [TemplatePackage.contentType]
         panel.nameFieldStringValue = t.name.replacingOccurrences(of: "[/:]", with: "-", options: .regularExpression) + "." + TemplatePackage.fileExtension
         panel.canCreateDirectories = true
-        panel.message = "Anyone with Spotify Wallpaper can double-click this file to install “\(t.name)”."
+        panel.message = "Anyone with Lirica can double-click this file to install “\(t.name)”."
         let dir = t.dir
         run(panel, in: window) { url in
             Task {

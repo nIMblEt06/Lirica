@@ -1,8 +1,11 @@
 # Changelog
 
-All notable changes to Spotify Wallpaper. Versions follow [semantic versioning](https://semver.org).
+All notable changes to Lirica. Versions follow [semantic versioning](https://semver.org).
 
 ## 1.7.0 — 2026-10-15
+
+### Changed
+- **The app is now Lirica.** Your templates, settings and history stay where they were.
 
 ### Added
 - **Control Spotify from the wallpaper.** Templates can now put real playback controls on your desktop: click
@@ -14,7 +17,7 @@ All notable changes to Spotify Wallpaper. Versions follow [semantic versioning](
   keyboard. Templates choose what to offer with `data-control="playPause | next | previous | seek | volume"` — the
   template guide has the details — and it can be turned off app-wide under **Wallpaper Controls** in the menu.
 - **Apple Music works too.** The wallpaper follows whichever player is playing, Spotify or Apple Music, and the
-  controls go to that one. The first time, macOS asks whether Spotify Wallpaper may control Music.
+  controls go to that one. The first time, macOS asks whether Lirica may control Music.
 - **Other music apps:** the wallpaper also follows YouTube Music, browsers and any other app that shows in the Mac's
   Now Playing feed, and the controls work for them too. Settings has a **Default music player**: when several are
   playing, that one wins, and the others follow in the order Spotify, Apple Music, YouTube Music, Other Apps. Turn
@@ -45,7 +48,7 @@ All notable changes to Spotify Wallpaper. Versions follow [semantic versioning](
 ## 1.5.0 — 2026-10-07
 
 ### Added
-- **Spotify Wallpaper has a home.** "Open Spotify Wallpaper…" (⌘O, or open the app again from Finder or the Dock)
+- **Lirica has a home.** "Open Lirica…" (⌘O, or open the app again from Finder or the Dock)
   shows your wallpaper live with its settings beside it as colour swatches, segmented controls and sliders, plus a
   shelf of recent and favourite templates. It replaces the Customize window and the menu's Template list.
 - **Browse all:** every template in a gallery grouped by feel (Lyrics, Painting, Print & paper, Objects, Calm, Yours),

@@ -1,5 +1,5 @@
 /*
- * Spotify Wallpaper template runtime. Every template includes this. It:
+ * Lirica template runtime. Every template includes this. It:
  *   - binds data to the page:      data-bind="track.title|upper"  data-src="track.cover"
  *                                  data-show="lyrics.hasLyrics"    data-attr-after="params.linesAfter"
  *   - exposes CSS variables:       --progress --line-progress --cover-url --vibrant --p0… --param-<key>
