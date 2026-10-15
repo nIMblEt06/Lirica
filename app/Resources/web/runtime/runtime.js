@@ -486,8 +486,28 @@
 
   document.addEventListener("click", (e) => {
     const el = controlOf(e), command = el && el.dataset.control;
+    if (!el) return;
+    el.classList.remove("sw-tap");
+    void el.offsetWidth;  // restart the bounce if it's clicked again mid-way
+    el.classList.add("sw-tap");
     if (command === "playPause" || command === "next" || command === "previous") sendControl(command);
   });
+  document.addEventListener("animationend", (e) => { if (e.target.classList) e.target.classList.remove("sw-tap"); });
+
+  // a control dims and shrinks while it's held (sw-pressed); the click then bounces it back (sw-tap)
+  let pressed = null;
+  document.addEventListener("pointerdown", (e) => {
+    const el = controlOf(e);
+    if (!el || e.button !== 0) return;
+    pressed = el;
+    el.classList.add("sw-pressed");
+  });
+  const releasePress = () => {
+    if (pressed) pressed.classList.remove("sw-pressed");
+    pressed = null;
+  };
+  document.addEventListener("pointerup", releasePress);
+  document.addEventListener("pointercancel", releasePress);
 
   // a long press on a control shouldn't pop the page's (empty) context menu over the desktop
   document.addEventListener("contextmenu", (e) => { if (controlOf(e)) e.preventDefault(); });

@@ -66,6 +66,16 @@ progress-bar .fill { position: absolute; inset: 0; background: currentColor; bor
 [data-control] { cursor: pointer; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
 [data-control]:active { cursor: default; }
 
+/* Press feedback: a control shrinks and dims while it's held, then bounces back with a flash when clicked. These
+   use the `scale` property, so they stack with any transform a template sets on the element. */
+[data-control] { transition: scale 0.18s ease, filter 0.18s ease; }
+[data-control].sw-pressed { scale: 0.92; filter: brightness(1.2); }
+[data-control].sw-tap { animation: sw-tap 0.42s ease-out; }
+@keyframes sw-tap {
+  0% { scale: 0.92; filter: brightness(1.6); }
+  100% { scale: 1; filter: brightness(1); }
+}
+
 /* Film grain overlay: <div class="sw-grain"></div>. A precomputed noise tile (not a live SVG filter, which the
    browser recomputed whenever anything underneath moved), on its own layer so it's never redrawn. */
 .sw-grain {

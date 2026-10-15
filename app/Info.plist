@@ -49,7 +49,7 @@
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSAppleEventsUsageDescription</key>
-	<string>Spotify Wallpaper reads what's playing in Spotify and controls playback when you use the controls on your wallpaper, so it can draw the song onto your desktop.</string>
+	<string>Spotify Wallpaper reads what's playing in Spotify or Music and controls playback when you use the controls on your wallpaper, so it can draw the song onto your desktop.</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSLocationUsageDescription</key>

@@ -31,6 +31,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var quickSwitcher: QuickSwitcher?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        Trace.start()
         if let probe = LyricsProbe.request {
             Task { await LyricsProbe.run(probe, paths: paths) }
             return

@@ -34,6 +34,7 @@ final class Updater {
 
     func check(userInitiated: Bool) async {
         guard !busy, automatic || userInitiated else { return }
+        Trace.log("update check (\(userInitiated ? "manual" : "automatic"))")
         busy = true
         defer { busy = false }
         do {

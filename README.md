@@ -88,8 +88,8 @@ See what changed in each version in the **[changelog](CHANGELOG.md)**, or in the
    ```sh
    xattr -dr com.apple.quarantine "/Applications/Spotify Wallpaper.app"
    ```
-4. When macOS asks whether Spotify Wallpaper may **control Spotify**, click **OK**. That's how it reads what's
-   playing — and how the controls on your wallpaper talk to Spotify.
+4. When macOS asks whether Spotify Wallpaper may **control Spotify** (and later **Music**, if you use Apple Music), click
+   **OK**. That's how it reads what's playing — and how the controls on your wallpaper talk to the player.
 
 Requires macOS 14 Sonoma or later and the Spotify desktop app. It runs natively on Apple Silicon and Intel.
 

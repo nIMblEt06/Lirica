@@ -128,6 +128,7 @@ final class DesktopLayer: NSObject, WKNavigationDelegate {
     func show() {
         guard !visible, loaded, full != nil else { return }
         visible = true
+        Trace.log("wallpaper shown: \(frame)")
         window.orderFrontRegardless()
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = 0.6
@@ -138,6 +139,7 @@ final class DesktopLayer: NSObject, WKNavigationDelegate {
     func hide() {
         guard visible else { return }
         visible = false
+        Trace.log("wallpaper hidden: \(frame)")
         NSAnimationContext.runAnimationGroup({ ctx in
             ctx.duration = 0.6
             window.animator().alphaValue = 0

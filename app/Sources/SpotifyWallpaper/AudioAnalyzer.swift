@@ -34,10 +34,11 @@ final class AudioAnalyzer: NSObject, SCStreamOutput, SCStreamDelegate, @unchecke
         guard stream == nil else { return }
         let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
         guard let display = content.displays.first else { throw Failure.noDisplay }
-        // only Spotify's sound; if it has no window to anchor the filter (closed with ⌘W), everything but this app
-        let filter = content.applications.first { $0.bundleIdentifier == "com.spotify.client" }
-            .map { SCContentFilter(display: display, including: [$0], exceptingWindows: []) }
-            ?? SCContentFilter(display: display, excludingApplications: [], exceptingWindows: [])
+        // only the player apps' sound; if none is running, everything but this app
+        let players = content.applications.filter { ["com.spotify.client", "com.apple.Music"].contains($0.bundleIdentifier) }
+        let filter = players.isEmpty
+            ? SCContentFilter(display: display, excludingApplications: [], exceptingWindows: [])
+            : SCContentFilter(display: display, including: players, exceptingWindows: [])
         let config = SCStreamConfiguration()
         config.capturesAudio = true
         config.excludesCurrentProcessAudio = true

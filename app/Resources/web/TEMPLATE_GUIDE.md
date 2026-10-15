@@ -165,6 +165,9 @@ A few things worth knowing:
 - From your own JS, `Wallpaper.control("next")`, `("playPause")`, `("previous")`, `("seek", 0.5)` (0–1 of the
   song), `("volume", 0.4)` (0–1) or `("volumeBy", ±1)` (±100%). Every command also reaches
   `Wallpaper.on("control", ({ command, value }) => { … })`.
+- A control dims while it's held (`.sw-pressed`) and bounces when clicked (`.sw-tap`); style those classes to give
+  your own reaction. Both use the `scale` property, so they stack with your transforms.
+- The track and the controls follow whichever player is playing, Spotify or Apple Music.
 - Controls never launch Spotify (the wallpaper isn't on screen unless Spotify is running) and can be switched
   off app-wide under **Wallpaper Controls** in the menu.
 

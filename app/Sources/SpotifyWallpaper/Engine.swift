@@ -196,7 +196,10 @@ final class Engine {
         }
         NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.setter.reapply() }
+            MainActor.assumeIsolated {
+                Trace.log("space changed: reapplying still wallpaper")
+                self?.setter.reapply()
+            }
         }
         NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in

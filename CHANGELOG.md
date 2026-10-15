@@ -13,6 +13,9 @@ All notable changes to Spotify Wallpaper. Versions follow [semantic versioning](
   and drags on the rest of the desktop behave exactly as before; the wallpaper never activates and never takes the
   keyboard. Templates choose what to offer with `data-control="playPause | next | previous | seek | volume"` — the
   template guide has the details — and it can be turned off app-wide under **Wallpaper Controls** in the menu.
+- **Apple Music works too.** The wallpaper follows whichever player is playing, Spotify or Apple Music, and the
+  controls go to that one. The first time, macOS asks whether Spotify Wallpaper may control Music.
+- **Click feedback:** a control shrinks and dims while it's held and bounces with a flash when clicked.
 - **Three control templates:** **Remote** (a glass remote: scroll the pad for volume, the centre plays and pauses, the
   sides skip), **Jukebox** (an arcade cabinet with coloured buttons, a volume knob and a neon seek bar) and **Island**
   (a floating pill over the blurred cover, with the lyric above it).
