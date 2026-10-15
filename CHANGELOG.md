@@ -27,6 +27,10 @@ All notable changes to Lirica. Versions follow [semantic versioning](https://sem
   sides skip), **Jukebox** (an arcade cabinet with coloured buttons, a volume knob and a neon seek bar) and **Island**
   (a floating pill over the blurred cover, with the lyric above it).
 
+### Fixed
+- The live wallpaper now stays at the real macOS desktop level. It no longer covers the focused app when playback
+  changes or while switching Spaces, and Space changes no longer force the wallpaper window to the front.
+
 ## 1.6.0 — 2026-10-09
 
 ### Added

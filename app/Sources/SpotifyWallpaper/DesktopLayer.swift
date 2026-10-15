@@ -37,8 +37,6 @@ final class DesktopLayer: NSObject, WKNavigationDelegate {
         rectBridge.layer = self
         configuration.userContentController.add(rectBridge, name: "swControls")
         window.setFrame(frame, display: false)
-        // The wallpaper sits one level below desktopWindow and Finder's icons at desktopIconWindow.
-        window.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopWindow)))
         window.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
         window.ignoresMouseEvents = true
         window.isReleasedWhenClosed = false
@@ -49,6 +47,10 @@ final class DesktopLayer: NSObject, WKNavigationDelegate {
         window.hidesOnDeactivate = false
         window.isFloatingPanel = false
         window.becomesKeyOnlyIfNeeded = true
+        // `isFloatingPanel = false` resets an NSPanel's level to `.normal`, so the desktop level must be
+        // assigned after that property. With the opposite order this full-screen panel was actually at layer 0
+        // and `orderFrontRegardless()` covered the focused app whenever a track or Space changed.
+        window.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopWindow)))
         webView.autoresizingMask = [.width, .height]
         webView.navigationDelegate = self
         window.contentView = webView
@@ -58,16 +60,15 @@ final class DesktopLayer: NSObject, WKNavigationDelegate {
         }
     }
 
-    /// A Space change can leave the layer paused and unpainted until macOS reports its occlusion again, which can take
-    /// as long as the transition. Bring it forward now and re-check while the transition settles.
+    /// A Space change can leave the page paused until macOS reports occlusion again. Re-check while the transition
+    /// settles, but never reorder the window: ordering a full-screen all-Spaces panel can cover the destination app.
     func spaceChanged() {
         guard visible else { return }
-        window.orderFrontRegardless()
+        occlusionChanged()
         for delay in [0.15, 0.5, 1.2] {
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
                 MainActor.assumeIsolated {
                     guard let self, self.visible else { return }
-                    self.window.orderFrontRegardless()
                     self.occlusionChanged()
                 }
             }
