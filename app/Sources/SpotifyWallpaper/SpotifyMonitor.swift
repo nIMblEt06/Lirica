@@ -169,7 +169,7 @@ final class SpotifyMonitor: @unchecked Sendable {
             var found: [MusicProvider: (track: Track, source: Source)] = [:]
             if let t = s { found[.spotify] = (t, .spotify) }
             if let t = m { found[.appleMusic] = (t, .music) }
-            if otherOn, let feed = nowPlaying?.playing(now: Date()) { found[MusicProvider.of(bundle: feed.bundle)] = (feed.track, .other) }
+            if otherOn, let feed = nowPlaying?.current(now: Date()) { found[MusicProvider.of(bundle: feed.bundle)] = (feed.track, .other) }
             let ranked = MusicProvider.priority.compactMap { found[$0] }
             let pick = ranked.first { $0.track.isPlaying } ?? ranked.first
             let track = pick?.track

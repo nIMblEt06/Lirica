@@ -153,6 +153,8 @@ final class Engine {
     }
 
     private var controlTimer: Timer?
+    private var lastTrackAt = Date.distantPast
+    private static let trackGrace: TimeInterval = 8
 
     private func pollControls() {
         let pointer = NSEvent.mouseLocation
@@ -280,7 +282,17 @@ final class Engine {
 
     private func tick() {
         let previousID = track?.id
-        track = latestTrack
+        // a track that drops out for a moment (a browser pausing, a player restarting) keeps the wallpaper up for a
+        // while; hiding it would also hand the desktop back to the system picture and then pop the wallpaper again
+        if let fresh = latestTrack {
+            lastTrackAt = Date()
+            track = fresh
+        } else if Date().timeIntervalSince(lastTrackAt) >= Self.trackGrace {
+            track = nil
+        }
+        if track?.id != previousID {
+            Trace.log("track: \(track.map { String($0.id.prefix(60)) } ?? "none")")
+        }
         pollStamp = latestStamp
         updateBeatCapture()
         guard let t = track else {

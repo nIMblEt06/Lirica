@@ -51,22 +51,23 @@ final class NowPlayingAdapter: @unchecked Sendable {
         stopLocked()
     }
 
-    /// The track playing right now in the feed and the app playing it, or nil. Paused media isn't reported: it would
-    /// stay up for good.
-    func playing(now: Date) -> (track: Track, bundle: String)? {
+    /// The track in the feed and the app it's playing in, or nil. Paused tracks count, like paused Spotify: they stay
+    /// until that app quits or another one takes over the feed.
+    func current(now: Date) -> (track: Track, bundle: String)? {
         lock.lock()
         let s = state, artwork = artworkFor, file = artworkFile
         lock.unlock()
         guard let id = Self.trackID(s), let bundle = s["bundleIdentifier"] as? String, !Self.directlyRead.contains(bundle),
-              s["playing"] as? Bool == true, let title = s["title"] as? String else { return nil }
+              let title = s["title"] as? String else { return nil }
+        let playing = s["playing"] as? Bool == true
         let rate = (s["playbackRate"] as? NSNumber)?.doubleValue ?? 1
         var position = Self.seconds(s["elapsedTimeMicros"])
-        if let stamp = (s["timestampEpochMicros"] as? NSNumber)?.doubleValue {
+        if playing, let stamp = (s["timestampEpochMicros"] as? NSNumber)?.doubleValue {
             position += (now.timeIntervalSince1970 * 1_000_000 - stamp) / 1_000_000 * rate
         }
         let track = Track(id: id, title: title, artist: s["artist"] as? String ?? "", album: s["album"] as? String ?? "",
                           artworkURL: artwork == id ? file : "", duration: Self.seconds(s["durationMicros"]),
-                          position: max(0, position), isPlaying: true)
+                          position: max(0, position), isPlaying: playing)
         return (track, bundle)
     }
 
