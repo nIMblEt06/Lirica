@@ -66,6 +66,13 @@ progress-bar .fill { position: absolute; inset: 0; background: currentColor; bor
 [data-control] { cursor: pointer; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
 [data-control]:active { cursor: default; }
 
+/* Play/pause: both glyphs stay in place and cross-fade with a small scale, so the change is an animation, not a jump.
+   Any element with data-control="playPause" that holds an svg.i-play and an svg.i-pause gets this. */
+[data-control="playPause"] { display: grid; place-items: center; }
+[data-control="playPause"] > svg { grid-area: 1 / 1; transition: opacity 0.3s ease, transform 0.38s cubic-bezier(0.2, 0.8, 0.2, 1); }
+html:not(.is-playing) [data-control="playPause"] > .i-pause,
+html.is-playing [data-control="playPause"] > .i-play { opacity: 0; transform: scale(0.55); }
+
 /* Press feedback: a control shrinks and dims while it's held, then bounces back with a flash when clicked. These
    use the `scale` property, so they stack with any transform a template sets on the element. */
 [data-control] { transition: scale 0.18s ease, filter 0.18s ease; }

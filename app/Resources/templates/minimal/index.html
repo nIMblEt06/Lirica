@@ -36,9 +36,6 @@
   .ctl { display: grid; place-items: center; width: 3vmin; height: 3vmin; color: #fff; }
   .ctl[data-control="playPause"] { width: 3.8vmin; height: 3.8vmin; }
   .ctl svg { width: 100%; height: 100%; fill: currentColor; display: block; }
-  .ctl .i-play, .ctl .i-pause { display: none; }
-  html:not(.is-playing) .ctl .i-play { display: block; }
-  html.is-playing .ctl .i-pause { display: block; }
   .seek { width: 34vmin; margin-top: 4.5vmin; height: 0.35vmin; color: #fff; background: rgba(255, 255, 255, 0.26); opacity: 0.55; }
   .seek:hover { opacity: 1; }
 </style>

@@ -312,11 +312,18 @@
     }
     for (const el of document.querySelectorAll("[data-src]")) {
       const v = evaluate(el.dataset.src, ctx);
-      if (v && el.getAttribute("src") !== v) el.setAttribute("src", v);
+      if (v && el.getAttribute("src") !== v) {
+        const replacing = el.hasAttribute("src");
+        el.setAttribute("src", v);
+        if (replacing && el.animate) el.animate([{ opacity: 0.2 }, { opacity: 1 }], { duration: 420, easing: "ease-out" });
+      }
     }
     for (const el of document.querySelectorAll("[data-show]")) {
       const hide = !evaluate(el.dataset.show, ctx);
-      if (el.hidden !== hide) el.hidden = hide;
+      if (el.hidden !== hide) {
+        el.hidden = hide;
+        if (!hide && el.animate) el.animate([{ opacity: 0, transform: "translateY(0.3em)" }, { opacity: 1, transform: "none" }], { duration: 340, easing: "ease-out" });
+      }
     }
   }
 
