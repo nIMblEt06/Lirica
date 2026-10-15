@@ -194,6 +194,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         add(menu, engine.paused ? "Resume Wallpaper" : "Pause Wallpaper", #selector(togglePause), "")
         let controls = add(menu, "Wallpaper Controls", #selector(toggleWallpaperControls), "")
         controls.state = engine.controlsEnabled ? .on : .off
+        let others = add(menu, "Other Players", #selector(toggleOtherPlayers), "")
+        others.state = engine.otherPlayersEnabled ? .on : .off
         menu.addItem(.separator())
         if let status = updater.status {
             let note = NSMenuItem(title: status, action: nil, keyEquivalent: "")
@@ -256,6 +258,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func togglePause() { engine.paused.toggle() }
 
     @objc private func toggleWallpaperControls() { engine.controlsEnabled.toggle() }
+
+    @objc private func toggleOtherPlayers() { engine.otherPlayersEnabled.toggle() }
 
     @objc private func openTemplatesFolder() { NSWorkspace.shared.open(paths.userTemplates) }
 
@@ -340,6 +344,8 @@ extension AppDelegate {
             "sharingNow": focusMonitor.sharing ? focusMonitor.reason : "",
             "useWeather": engine.useWeather,
             "beatSync": engine.beatSync,
+            "musicPriority": MusicProvider.defaultProvider.rawValue,
+            "otherPlayers": engine.otherPlayersEnabled,
             "shareFormat": shareCard.format.rawValue,
             "keepHistory": history.enabled,
             "historyCount": history.entries.count,
@@ -359,6 +365,8 @@ extension AppDelegate {
         case "hideWhileSharing": if on != hideLyricsWhileSharing { toggleHideWhileSharing() }
         case "useWeather": engine.useWeather = on
         case "beatSync": engine.beatSync = on
+        case "musicPriority": if let raw = value as? String, let p = MusicProvider(rawValue: raw) { MusicProvider.defaultProvider = p }
+        case "otherPlayers": engine.otherPlayersEnabled = on
         case "shareFormat": if let raw = value as? String, let f = ShareCard.Format(rawValue: raw) { shareCard.format = f }
         case "keepHistory": history.enabled = on
         case "autoUpdate":

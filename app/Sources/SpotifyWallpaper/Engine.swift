@@ -99,6 +99,12 @@ final class Engine {
     // MARK: playback controls on the wallpaper (data-control in templates)
 
     /// "Wallpaper Controls" in the menu. On by default: clicks on a template's controls drive Spotify.
+    /// Follows players other than Spotify and Music (browsers, YouTube, any app on the Now Playing feed).
+    var otherPlayersEnabled: Bool {
+        get { UserDefaults.standard.object(forKey: "otherPlayers") as? Bool ?? true }
+        set { UserDefaults.standard.set(newValue, forKey: "otherPlayers") }
+    }
+
     var controlsEnabled: Bool {
         get { UserDefaults.standard.object(forKey: "wallpaperControls") as? Bool ?? true }
         set {
@@ -160,6 +166,7 @@ final class Engine {
     init(store: TemplateStore, paths: Paths) {
         self.store = store
         self.paths = paths
+        spotify.nowPlaying = NowPlayingAdapter(resources: paths.resources)
         lyricsService = LyricsService(paths: paths)
         setter = WallpaperSetter(paths: paths)
     }

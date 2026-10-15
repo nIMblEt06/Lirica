@@ -1063,6 +1063,9 @@ function renderSettings() {
     ]),
     card("Music data", [
       row("Weather", "Uses your approximate location and Open-Meteo, for Weather & Time and other templates.", tg("useWeather", "Weather")),
+      row("Default music player", "When several are playing, this one wins. The others follow in the order Spotify, Apple Music, YouTube Music, Other Apps.",
+        seg("musicPriority", [["spotify", "Spotify"], ["appleMusic", "Apple Music"], ["youtubeMusic", "YouTube Music"], ["other", "Other Apps"]])),
+      row("Other players", "Browsers, YouTube and any app on the Mac's Now Playing feed. Uses a helper that a macOS update may stop supporting.", tg("otherPlayers", "Other players")),
       row("Sync to the beat", "Analyses Spotify's sound live so templates can move with the music. Nothing is recorded. Needs Screen Recording permission.", tg("beatSync", "Sync to the beat")),
     ]),
     card("Lyric cards", [
