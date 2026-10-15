@@ -19,9 +19,9 @@ All notable changes to Lirica. Versions follow [semantic versioning](https://sem
 - **Apple Music works too.** The wallpaper follows whichever player is playing, Spotify or Apple Music, and the
   controls go to that one. The first time, macOS asks whether Lirica may control Music.
 - **Other music apps:** the wallpaper also follows YouTube Music, browsers and any other app that shows in the Mac's
-  Now Playing feed, and the controls work for them too. Settings has a **Default music player**: when several are
-  playing, that one wins, and the others follow in the order Spotify, Apple Music, YouTube Music, Other Apps. Turn
-  **Other players** off there if you don't want the feed.
+  Now Playing feed, and the controls work for them too. Settings has a **Default music player**: Lirica follows it when it
+  starts playing, and switches to whatever plays after an hour of silence. Clicking controls never switches the player.
+  Turn **Other players** off there if you don't want the feed.
 - **Click feedback:** a control shrinks and dims while it's held and bounces with a flash when clicked.
 - **Three control templates:** **Remote** (a glass remote: scroll the pad for volume, the centre plays and pauses, the
   sides skip), **Jukebox** (an arcade cabinet with coloured buttons, a volume knob and a neon seek bar) and **Island**

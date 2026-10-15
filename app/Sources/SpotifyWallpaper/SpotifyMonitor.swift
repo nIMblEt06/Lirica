@@ -158,6 +158,10 @@ final class SpotifyMonitor: @unchecked Sendable {
         let music = Player(app: Self.musicName, light: Self.lightSource(Self.musicName, id: Self.musicIDExpr),
                            full: Self.fullSource(Self.musicName, id: Self.musicIDExpr, artwork: "\"\""))
         var active = Source.spotify
+        // which provider the wallpaper is following, and what was playing last time round
+        var followed: MusicProvider?
+        var playingBefore = Set<MusicProvider>()
+        var lastPlayed = Date()
 
         while true {
             let otherOn = UserDefaults.standard.object(forKey: "otherPlayers") as? Bool ?? true
@@ -170,8 +174,26 @@ final class SpotifyMonitor: @unchecked Sendable {
             if let t = s { found[.spotify] = (t, .spotify) }
             if let t = m { found[.appleMusic] = (t, .music) }
             if otherOn, let feed = nowPlaying?.current(now: Date()) { found[MusicProvider.of(bundle: feed.bundle)] = (feed.track, .other) }
-            let ranked = MusicProvider.priority.compactMap { found[$0] }
-            let pick = ranked.first { $0.track.isPlaying } ?? ranked.first
+            // The wallpaper keeps following one provider. It switches only when the default starts playing, or when
+            // nothing has played for an hour and something starts. Controls don't change it.
+            let now = Date()
+            let playingNow = Set(found.filter { $0.value.track.isPlaying }.keys)
+            let started = playingNow.subtracting(playingBefore)
+            let silentAnHour = now.timeIntervalSince(lastPlayed) > 3600
+            if !playingNow.isEmpty { lastPlayed = now }
+            playingBefore = playingNow
+            if let f = followed, found[f] != nil {
+                if started.contains(MusicProvider.defaultProvider) {
+                    followed = MusicProvider.defaultProvider
+                } else if silentAnHour, let first = MusicProvider.priority.first(where: { playingNow.contains($0) }) {
+                    followed = first
+                }
+            } else {
+                // nothing followed yet, or it's gone: a playing provider, else the first one that has a track
+                followed = MusicProvider.priority.first(where: { playingNow.contains($0) })
+                    ?? MusicProvider.priority.first(where: { found[$0] != nil })
+            }
+            let pick = followed.flatMap { found[$0] }
             let track = pick?.track
             active = pick?.source ?? .spotify
             let after = Date().timeIntervalSince1970 * 1000

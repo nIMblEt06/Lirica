@@ -194,8 +194,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         add(menu, engine.paused ? "Resume Wallpaper" : "Pause Wallpaper", #selector(togglePause), "")
         let controls = add(menu, "Wallpaper Controls", #selector(toggleWallpaperControls), "")
         controls.state = engine.controlsEnabled ? .on : .off
-        let others = add(menu, "Other Players", #selector(toggleOtherPlayers), "")
-        others.state = engine.otherPlayersEnabled ? .on : .off
         menu.addItem(.separator())
         if let status = updater.status {
             let note = NSMenuItem(title: status, action: nil, keyEquivalent: "")
@@ -258,8 +256,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func togglePause() { engine.paused.toggle() }
 
     @objc private func toggleWallpaperControls() { engine.controlsEnabled.toggle() }
-
-    @objc private func toggleOtherPlayers() { engine.otherPlayersEnabled.toggle() }
 
     @objc private func openTemplatesFolder() { NSWorkspace.shared.open(paths.userTemplates) }
 
