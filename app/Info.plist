@@ -3,12 +3,12 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDisplayName</key>
-	<string>Spotify Wallpaper</string>
+	<string>Lirica</string>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Spotify Wallpaper Template</string>
+			<string>Lirica Template</string>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>LSHandlerRank</key>
@@ -26,11 +26,11 @@
 	<key>CFBundleIdentifier</key>
 	<string>com.shashvat.spotifywallpaper</string>
 	<key>CFBundleName</key>
-	<string>Spotify Wallpaper</string>
+	<string>Lirica</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.6.0</string>
+	<string>1.7.0</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -43,19 +43,19 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>9</string>
+	<string>10</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>14.0</string>
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSAppleEventsUsageDescription</key>
-	<string>Spotify Wallpaper reads what's playing in Spotify so it can draw the song onto your wallpaper.</string>
+	<string>Lirica reads what's playing in Spotify or Music and controls playback when you use the controls on your wallpaper, so it can draw the song onto your desktop.</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSLocationUsageDescription</key>
-	<string>Spotify Wallpaper uses your approximate location to show the local weather and daylight on your wallpaper.</string>
+	<string>Lirica uses your approximate location to show the local weather and daylight on your wallpaper.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Spotify Wallpaper uses your approximate location to show the local weather and daylight on your wallpaper.</string>
+	<string>Lirica uses your approximate location to show the local weather and daylight on your wallpaper.</string>
 	<key>UTExportedTypeDeclarations</key>
 	<array>
 		<dict>
@@ -65,7 +65,7 @@
 				<string>public.archive</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Spotify Wallpaper Template</string>
+			<string>Lirica Template</string>
 			<key>UTTypeIdentifier</key>
 			<string>com.shashvat.spotifywallpaper.template</string>
 			<key>UTTypeTagSpecification</key>

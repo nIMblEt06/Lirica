@@ -96,16 +96,67 @@ final class Engine {
         return "\(t.title) — \(t.artist)"
     }
 
+    // MARK: playback controls on the wallpaper (data-control in templates)
+
+    /// "Wallpaper controls" in Settings. On by default: clicks on a template's controls drive the followed player.
+    /// Follows players other than Spotify and Music (browsers, YouTube, any app on the Now Playing feed).
+    var otherPlayersEnabled: Bool {
+        get { UserDefaults.standard.object(forKey: "otherPlayers") as? Bool ?? true }
+        set { UserDefaults.standard.set(newValue, forKey: "otherPlayers") }
+    }
+
+    var controlsEnabled: Bool {
+        get { UserDefaults.standard.object(forKey: "wallpaperControls") as? Bool ?? true }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "wallpaperControls")
+            updateControlPanels()
+        }
+    }
+
+    /// A command from a template: playPause, next, previous, seek (0–1 through the song), volume (0–1) or
+    /// volumeBy (±1 = ±100%).
+    func performControl(_ command: String, value: Double?) {
+        guard controlsEnabled else { return }
+        switch command {
+        case "playPause": spotify.perform(.togglePlayPause)
+        case "next": spotify.perform(.next)
+        case "previous": spotify.perform(.previous)
+        case "seek":
+            guard let t = track, t.duration > 0, let v = value else { return }
+            spotify.perform(.seek(min(max(v, 0), 1) * t.duration))
+        case "volume":
+            guard let v = value else { return }
+            spotify.perform(.setVolume(min(max(v, 0), 1) * 100))
+        case "volumeBy":
+            guard let v = value else { return }
+            spotify.perform(.volumeBy(min(max(v, -1), 1) * 100))
+        default: break
+        }
+    }
+
+    /// Keep each layer's native control hit windows in step with the setting. They are below all application windows,
+    /// so covered controls naturally stop receiving input without global monitoring or a privacy permission.
+    private func updateControlPanels() {
+        layers.values.forEach { $0.setControlInteractionEnabled(controlsEnabled) }
+    }
+
+    private var lastTrackAt = Date.distantPast
+    private static let trackGrace: TimeInterval = 8
+
     init(store: TemplateStore, paths: Paths) {
         self.store = store
         self.paths = paths
+        spotify.nowPlaying = NowPlayingAdapter(resources: paths.resources)
         lyricsService = LyricsService(paths: paths)
         setter = WallpaperSetter(paths: paths)
     }
 
+    private lazy var controlBridge = ControlBridge(engine: self)
+
     func makeWebConfiguration(throttleWhenHidden: Bool = false) -> WKWebViewConfiguration {
         let config = WKWebViewConfiguration()
         config.setURLSchemeHandler(schemeHandler, forURLScheme: "sw")
+        config.userContentController.add(controlBridge, name: "swCommand")
         if !throttleWhenHidden { config.preferences.inactiveSchedulingPolicy = .none }
         return config
     }
@@ -132,7 +183,11 @@ final class Engine {
         }
         NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.setter.reapply() }
+            MainActor.assumeIsolated {
+                Trace.log("space changed: reapplying still wallpaper")
+                self?.setter.reapply()
+                self?.layers.values.forEach { $0.spaceChanged() }
+            }
         }
         NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
@@ -148,6 +203,7 @@ final class Engine {
 
     func shutdown() {
         hideLayers()
+        spotify.nowPlaying?.shutdown()
         setter.restore()
     }
 
@@ -197,6 +253,7 @@ final class Engine {
         layers.removeAll()
         renderers.values.forEach { $0.close() }
         renderers.removeAll()
+        updateControlPanels()
         invalidate()
     }
 
@@ -204,7 +261,17 @@ final class Engine {
 
     private func tick() {
         let previousID = track?.id
-        track = latestTrack
+        // a track that drops out for a moment (a browser pausing, a player restarting) keeps the wallpaper up for a
+        // while; hiding it would also hand the desktop back to the system picture and then pop the wallpaper again
+        if let fresh = latestTrack {
+            lastTrackAt = Date()
+            track = fresh
+        } else if Date().timeIntervalSince(lastTrackAt) >= Self.trackGrace {
+            track = nil
+        }
+        if track?.id != previousID {
+            Trace.log("track: \(track.map { String($0.id.prefix(60)) } ?? "none")")
+        }
         pollStamp = latestStamp
         updateBeatCapture()
         guard let t = track else {
@@ -242,6 +309,7 @@ final class Engine {
         if !liveChanged.isEmpty { onStateChange?() }
         let clock = jsonString(["position": t.position, "isPlaying": t.isPlaying, "stamp": pollStamp])
         layers.values.forEach { $0.sendClock(clock); $0.show() }
+        updateControlPanels()
         onClock?(clock)
 
         // real wallpaper still: only the screens whose key changed are redrawn
@@ -261,7 +329,8 @@ final class Engine {
             guard let template = templates[id] else { continue }
             if layers[id]?.frame != screen.frame {
                 layers[id]?.close()
-                layers[id] = DesktopLayer(screen: screen, configuration: makeWebConfiguration(throttleWhenHidden: true))
+                let layer = DesktopLayer(screen: screen, configuration: makeWebConfiguration(throttleWhenHidden: true))
+                layers[id] = layer
                 liveKeys[id] = nil
             }
             var url = URLComponents(url: template.url, resolvingAgainstBaseURL: false)!
@@ -270,7 +339,10 @@ final class Engine {
         }
     }
 
-    private func hideLayers() { layers.values.forEach { $0.hide() } }
+    private func hideLayers() {
+        layers.values.forEach { $0.hide() }
+        updateControlPanels()
+    }
 
     private func load(_ t: Track) async {
         fetchGenre(t)
@@ -527,10 +599,10 @@ extension Engine {
         let alert = NSAlert()
         alert.messageText = "Sync to the Beat needs Screen Recording"
         alert.informativeText = """
-            Spotify Wallpaper listens to Spotify's sound to find the beat; macOS files that under screen recording. \
+            Lirica listens to Spotify's sound to find the beat; macOS files that under screen recording. \
             Nothing is recorded or saved.
 
-            Turn on Spotify Wallpaper in System Settings › Privacy & Security › Screen & System Audio Recording, \
+            Turn on Lirica in System Settings › Privacy & Security › Screen & System Audio Recording, \
             then choose Sync to the Beat again (macOS may ask you to reopen the app first).
             """
         alert.addButton(withTitle: "Open System Settings")

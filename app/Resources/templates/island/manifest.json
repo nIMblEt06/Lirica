@@ -1,0 +1,32 @@
+{
+  "name": "Island",
+  "description": "A floating pill over a blurred cover with the lyric above it. Scroll it for volume, tap the centre to play or pause, and drag the thin bar along its base to seek.",
+  "author": "Built-in",
+  "category": "calm",
+  "params": [
+    {
+      "key": "tint",
+      "type": "color",
+      "label": "Glow color",
+      "default": "auto:vibrant"
+    },
+    {
+      "key": "font",
+      "type": "font",
+      "label": "Lyric font",
+      "default": "SF Pro Rounded"
+    },
+    {
+      "key": "controls",
+      "type": "bool",
+      "label": "Playback controls",
+      "default": true
+    },
+    {
+      "key": "grain",
+      "type": "bool",
+      "label": "Film grain",
+      "default": true
+    }
+  ]
+}

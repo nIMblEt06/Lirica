@@ -71,6 +71,12 @@
       "default": true
     },
     {
+      "key": "controls",
+      "type": "bool",
+      "label": "Playback controls",
+      "default": true
+    },
+    {
       "key": "grain",
       "type": "bool",
       "label": "Film grain",

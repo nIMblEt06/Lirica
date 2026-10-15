@@ -34,16 +34,17 @@ final class Updater {
 
     func check(userInitiated: Bool) async {
         guard !busy, automatic || userInitiated else { return }
+        Trace.log("update check (\(userInitiated ? "manual" : "automatic"))")
         busy = true
         defer { busy = false }
         do {
             let release = try await latestRelease()
             guard Self.isNewer(release.version, than: currentVersion) else {
-                if userInitiated { alert("You're up to date", "Spotify Wallpaper \(currentVersion) is the latest version.") }
+                if userInitiated { alert("You're up to date", "Lirica \(currentVersion) is the latest version.") }
                 return
             }
             if let problem = installProblem {
-                if userInitiated { alert("Spotify Wallpaper \(release.version) is available", problem) }
+                if userInitiated { alert("Lirica \(release.version) is available", problem) }
                 return
             }
             status = "Updating to \(release.version)…"
@@ -96,10 +97,10 @@ final class Updater {
     /// Why the app can't replace itself, if it can't.
     private var installProblem: String? {
         if appURL.path.contains("/AppTranslocation/") || appURL.pathExtension != "app" {
-            return "Move Spotify Wallpaper to your Applications folder so it can update itself."
+            return "Move Lirica to your Applications folder so it can update itself."
         }
         if !FileManager.default.isWritableFile(atPath: appURL.deletingLastPathComponent().path) {
-            return "Spotify Wallpaper can't write to \(appURL.deletingLastPathComponent().path). Download the new version from GitHub."
+            return "Lirica can't write to \(appURL.deletingLastPathComponent().path). Download the new version from GitHub."
         }
         return nil
     }
@@ -125,11 +126,11 @@ final class Updater {
         guard let newApp = try fm.contentsOfDirectory(at: work, includingPropertiesForKeys: nil).first(where: { $0.pathExtension == "app" }),
               let info = NSDictionary(contentsOf: newApp.appendingPathComponent("Contents/Info.plist")),
               info["CFBundleIdentifier"] as? String == Bundle.main.bundleIdentifier
-        else { throw UpdateError("The download isn't a Spotify Wallpaper app.") }
+        else { throw UpdateError("The download isn't a Lirica app.") }
         try run("/usr/bin/codesign", ["--verify", "--deep", "--strict", newApp.path])
 
         // stage it next to the current app (same volume, so the final swap is a rename)
-        let staged = appURL.deletingLastPathComponent().appendingPathComponent(".Spotify Wallpaper update.app")
+        let staged = appURL.deletingLastPathComponent().appendingPathComponent(".Lirica update.app")
         try? fm.removeItem(at: staged)
         try fm.moveItem(at: newApp, to: staged)
 

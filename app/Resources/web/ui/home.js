@@ -1063,6 +1063,10 @@ function renderSettings() {
     ]),
     card("Music data", [
       row("Weather", "Uses your approximate location and Open-Meteo, for Weather & Time and other templates.", tg("useWeather", "Weather")),
+      row("Default music player", "Lirica follows this player when it starts playing, and switches to whatever plays after an hour of silence. When YouTube Music is the default, browser playback counts as YouTube Music. Clicking controls never switches players.",
+        seg("musicPriority", [["spotify", "Spotify"], ["appleMusic", "Apple Music"], ["youtubeMusic", "YouTube Music"], ["other", "Other Apps"]])),
+      row("Other players", "Browsers, YouTube and any app on the Mac's Now Playing feed. Uses a helper that a macOS update may stop supporting.", tg("otherPlayers", "Other players")),
+      row("Wallpaper controls", "Controls stay on the desktop and never cover or activate your application windows.", tg("wallpaperControls", "Wallpaper controls")),
       row("Sync to the beat", "Analyses Spotify's sound live so templates can move with the music. Nothing is recorded. Needs Screen Recording permission.", tg("beatSync", "Sync to the beat")),
     ]),
     card("Lyric cards", [
@@ -1078,11 +1082,11 @@ function renderSettings() {
         btn("openTemplatesFolder", "Open templates folder") + btn("openBuilder", "Template Builder") + `<button type="button" class="mbtn sm" data-reload>Reload templates</button>`),
     ]),
     card("Updates", [
-      row(`Spotify Wallpaper ${esc(v.version || "")}`, v.updateStatus || "Updates come from GitHub releases.", "", btn("checkUpdates", "Check for updates") + btn("whatsNew", "What's new")),
+      row(`Lirica ${esc(v.version || "")}`, v.updateStatus || "Updates come from GitHub releases.", "", btn("checkUpdates", "Check for updates") + btn("whatsNew", "What's new")),
       row("Install updates automatically", "", tg("autoUpdate", "Install updates automatically")),
     ]),
     card("Keyboard", [
-      row("Open Spotify Wallpaper", "", kb("⌘O")), row("Quick Switcher", "", kb("⌃⌥⌘W")),
+      row("Open Lirica", "", kb("⌘O")), row("Quick Switcher", "", kb("⌃⌥⌘W")),
       row("Share lyric card", "", kb("⌃⌥⌘L")), row("Focus Mode", "", kb("⌃⌥⌘F")), row("Tabs in this window", "", kb("⌘1–5")),
     ]),
   ].join("");

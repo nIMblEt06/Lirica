@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/runtime/runtime.css">
+<script src="/runtime/runtime.js"></script>
+<style>
+  body { color: #fff; background: #0b0b0e; font-family: -apple-system, "SF Pro Text", sans-serif; }
+  .backdrop { position: absolute; inset: -12%; width: 124%; height: 124%; object-fit: cover; filter: blur(7vmin) saturate(1.25) brightness(0.6); }
+  .tint { position: absolute; inset: 0; background: radial-gradient(ellipse 55% 60% at 50% 45%, var(--param-tint) 0%, transparent 75%); opacity: 0.55; }
+  .remote {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: 40vmin; height: 78vmin; padding: 5vmin 4.5vmin; box-sizing: border-box;
+    display: flex; flex-direction: column; align-items: center;
+    border-radius: 7vmin; background: linear-gradient(165deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.05));
+    box-shadow: inset 0 0 0 0.2vmin rgba(255, 255, 255, 0.2), 0 4vmin 10vmin rgba(0, 0, 0, 0.5);
+  }
+  .screen {
+    width: 100%; height: 26vmin; box-sizing: border-box; padding: 2.5vmin; border-radius: 3.5vmin;
+    background: rgba(0, 0, 0, 0.42); display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;
+  }
+  .line { font-family: var(--param-font); font-size: 2.7vmin; line-height: 1.3; font-weight: 600; }
+  .sub { font-size: 1.5vmin; opacity: 0.6; margin-top: 1.4vmin; letter-spacing: 0.03em; }
+  .pad {
+    position: relative; margin-top: 8vmin; width: 31vmin; height: 31vmin; border-radius: 50%;
+    background: radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.06) 72%);
+    box-shadow: inset 0 0 0 0.2vmin rgba(255, 255, 255, 0.22);
+  }
+  .zone { position: absolute; top: 18%; height: 64%; width: 30%; display: grid; place-items: center; }
+  .zprev { left: 2%; }
+  .znext { right: 2%; }
+  .zone svg { width: 3.4vmin; height: 3.4vmin; fill: rgba(255, 255, 255, 0.78); display: block; }
+  .center {
+    position: absolute; left: 50%; top: 50%; width: 12vmin; height: 12vmin; margin: -6vmin 0 0 -6vmin; border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2); box-shadow: 0 0.8vmin 2vmin rgba(0, 0, 0, 0.35); display: grid; place-items: center;
+  }
+  .center svg { width: 4.6vmin; height: 4.6vmin; fill: #fff; display: block; }
+  .seek { width: 31vmin; height: 0.5vmin; margin-top: 8vmin; color: #fff; background: rgba(255, 255, 255, 0.22); border-radius: 0.5vmin; }
+  .times { width: 31vmin; margin-top: 1.6vmin; display: flex; justify-content: space-between; font-size: 1.4vmin; opacity: 0.6; font-variant-numeric: tabular-nums; }
+  .sw-grain { opacity: 0.12; }
+</style>
+</head>
+<body>
+  <img class="backdrop" data-src="track.cover" alt="">
+  <div class="tint"></div>
+  <div class="remote">
+    <div class="screen">
+      <div class="line" data-show="lyrics.hasLyrics" data-bind="lyrics.current"></div>
+      <div class="line" data-show="!lyrics.hasLyrics" data-bind="track.title"></div>
+      <div class="sub" data-bind="track.artist"></div>
+    </div>
+    <div class="pad" data-control="volume" data-show="params.controls">
+      <div class="zone zprev" data-control="previous" role="button" aria-label="Previous">
+        <svg viewBox="0 0 24 24"><path d="M6 5h2.6v14H6zM20 5v14L9.3 12z"/></svg>
+      </div>
+      <div class="zone znext" data-control="next" role="button" aria-label="Next">
+        <svg viewBox="0 0 24 24"><path d="M15.4 5H18v14h-2.6zM4 5v14l10.7-7z"/></svg>
+      </div>
+      <div class="center" data-control="playPause" role="button" aria-label="Play or pause">
+        <svg class="i-play" viewBox="0 0 24 24"><path d="M7 4.2v15.6L20 12z"/></svg>
+        <svg class="i-pause" viewBox="0 0 24 24"><path d="M6.8 4.5h3.5v15H6.8zM13.7 4.5h3.5v15h-3.5z"/></svg>
+      </div>
+    </div>
+    <progress-bar class="seek" data-control="seek" data-show="params.controls"></progress-bar>
+    <div class="times" data-show="params.controls">
+      <span data-bind="track.elapsed"></span><span data-bind="track.remaining"></span>
+    </div>
+  </div>
+  <div class="sw-grain" data-show="params.grain"></div>
+</body>
+</html>

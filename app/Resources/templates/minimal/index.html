@@ -29,6 +29,15 @@
   }
   .param-lowercase .foot { text-transform: lowercase; }
   .sw-grain { opacity: 0.14; }
+
+  /* playback controls: quiet until you reach for them */
+  .controls { display: flex; align-items: center; gap: 6vmin; margin-top: 5vmin; opacity: 0.4; transition: opacity 0.35s ease; }
+  .controls:hover { opacity: 0.95; }
+  .ctl { display: grid; place-items: center; width: 3vmin; height: 3vmin; color: #fff; }
+  .ctl[data-control="playPause"] { width: 3.8vmin; height: 3.8vmin; }
+  .ctl svg { width: 100%; height: 100%; fill: currentColor; display: block; }
+  .seek { width: 34vmin; margin-top: 4.5vmin; height: 0.35vmin; color: #fff; background: rgba(255, 255, 255, 0.26); opacity: 0.55; }
+  .seek:hover { opacity: 1; }
 </style>
 </head>
 <body>
@@ -40,6 +49,19 @@
     <div class="current" data-show="!lyrics.hasLyrics" data-bind="track.title"></div>
     <div class="next" data-lyrics data-animate data-show="params.showNext" data-bind="lyrics.next1"></div>
     <wave-form bars="56" data-show="params.showWave"></wave-form>
+    <progress-bar class="seek" data-control="seek" data-show="params.controls"></progress-bar>
+    <div class="controls" data-show="params.controls">
+      <div class="ctl" data-control="previous" role="button" aria-label="Previous">
+        <svg viewBox="0 0 24 24"><path d="M6 5h2.6v14H6zM20 5v14L9.3 12z"/></svg>
+      </div>
+      <div class="ctl" data-control="playPause" role="button" aria-label="Play or pause">
+        <svg class="i-play" viewBox="0 0 24 24"><path d="M7 4.2v15.6L20 12z"/></svg>
+        <svg class="i-pause" viewBox="0 0 24 24"><path d="M6.8 4.5h3.5v15H6.8zM13.7 4.5h3.5v15h-3.5z"/></svg>
+      </div>
+      <div class="ctl" data-control="next" role="button" aria-label="Next">
+        <svg viewBox="0 0 24 24"><path d="M15.4 5H18v14h-2.6zM4 5v14l10.7-7z"/></svg>
+      </div>
+    </div>
   </div>
   <div class="foot"><span data-bind="track.title"></span> &nbsp;—&nbsp; <span data-bind="track.artist"></span></div>
   <div class="sw-grain" data-show="params.grain"></div>

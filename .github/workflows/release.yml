@@ -55,8 +55,8 @@ jobs:
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${{ steps.version.outputs.version }}" \
                                   -c "Set :CFBundleVersion ${{ github.run_number }}" app/Info.plist
           cd app && ./build.sh release
-          lipo -archs "build/Spotify Wallpaper.app/Contents/MacOS/SpotifyWallpaper"
-          codesign --verify --deep --strict "build/Spotify Wallpaper.app"
+          lipo -archs "build/Lirica.app/Contents/MacOS/SpotifyWallpaper"
+          codesign --verify --deep --strict "build/Lirica.app"
 
       - name: Release notes
         run: python3 .github/scripts/release_notes.py "${{ steps.version.outputs.version }}" "${{ steps.version.outputs.previous }}" > notes.md
@@ -64,5 +64,5 @@ jobs:
       - name: Publish
         run: |
           v="${{ steps.version.outputs.version }}"
-          gh release create "v$v" "app/build/Spotify-Wallpaper-$v.zip" \
-            --title "Spotify Wallpaper $v" --notes-file notes.md --target "$GITHUB_SHA"
+          gh release create "v$v" "app/build/Lirica-$v.zip" \
+            --title "Lirica $v" --notes-file notes.md --target "$GITHUB_SHA"

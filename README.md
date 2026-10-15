@@ -1,4 +1,4 @@
-# Spotify Wallpaper
+# Lirica
 
 A macOS menu bar app that turns your desktop into whatever Spotify is playing: the cover art plus **live, synced
 lyrics** that animate line by line, on every Space and every monitor. Designs are HTML/CSS templates you can tweak
@@ -70,7 +70,11 @@ with sliders or rewrite completely.
 - **Customizable:** each template's settings (colors, fonts, sizes, lines shown, blur, grain, animation) appear in
   the app's Home window next to a live preview. You can also duplicate a template and edit its HTML/CSS directly; it
   reloads as you save.
-- **No login or API key.** It reads the Spotify desktop app directly.
+- **No login or API key.** It reads Spotify and Apple Music directly, and other players from macOS Now Playing.
+- **Controls on the wallpaper itself:** templates can put real controls on your desktop — click play/pause and
+  skip, drag a progress bar to seek, and in Classic scroll the iPod's click wheel for the volume. Clicks reach the
+  page only while the pointer is over a control, so icons, right-clicks and drags on the rest of the desktop behave
+  exactly as before. Turn it off any time under **Wallpaper controls** in Settings.
 
 <p align="center"><img src="docs/screenshots/customize.jpg" width="85%" alt="The Customize window"></p>
 
@@ -78,15 +82,17 @@ See what changed in each version in the **[changelog](CHANGELOG.md)**, or in the
 
 ## Install
 
-1. Download **Spotify-Wallpaper-x.y.zip** from the [latest release](../../releases/latest) and unzip it.
-2. Move **Spotify Wallpaper.app** to **/Applications**.
+1. Download **Lirica-x.y.zip** from the [latest release](../../releases/latest) and unzip it.
+2. Move **Lirica.app** to **/Applications**.
 3. The app isn't notarized by Apple, so the first time, **right-click it → Open → Open**. Or run:
    ```sh
-   xattr -dr com.apple.quarantine "/Applications/Spotify Wallpaper.app"
+   xattr -dr com.apple.quarantine "/Applications/Lirica.app"
    ```
-4. When macOS asks whether Spotify Wallpaper may **control Spotify**, click **OK**. That's how it reads what's playing.
+4. When macOS asks whether Lirica may **control Spotify** (and later **Music**, if you use Apple Music), click
+   **OK**. That's how it reads what's playing — and how the controls on your wallpaper talk to the player.
 
-Requires macOS 14 Sonoma or later and the Spotify desktop app. It runs natively on Apple Silicon and Intel.
+Requires macOS 14 Sonoma or later. Spotify and Apple Music work directly; browsers, YouTube Music and other
+players work through the Mac's Now Playing feed. Lirica runs natively on Apple Silicon and Intel.
 
 **Updates install themselves** from v1.2.0 on. The app checks this repo's releases at launch and every 6 hours,
 verifies the download (GitHub's SHA-256 checksum, the app's identifier and its code signature), swaps it in and
@@ -97,19 +103,16 @@ every Space rather than set one Space at a time.
 
 ## Use
 
-Everything is in the ♪ menu bar icon:
+Everyday actions are in the ♪ menu bar icon; app-wide options are in **Settings**:
 
 | Menu item | What it does |
 |---|---|
-| **Open Spotify Wallpaper… (⌘O)** | Home: a live preview with each template's settings, a shelf of recent and favourite templates, the full gallery, a template per display, the History Wall, and lyrics source and timing. Also opens when you open the app again from Finder or the Dock |
-| **Template Builder…** | Design a new template visually, no code |
-| **Lyrics** | Nudge this song's timing earlier or later (remembered per song). Pick the source or search again in Home's Lyrics tab |
-| **Refresh Rate** | Display maximum, 60, 30 or 15 fps for the animation. Lyric timing is exact at any rate |
+| **Open Lirica… (⌘O)** | Home: a live preview with each template's settings, a shelf of recent and favourite templates, the full gallery, a template per display, the History Wall, and lyrics source and timing. Also opens when you open the app again from Finder or the Dock |
+| **Quick Switcher… (⌃⌥⌘W)** | Switch the template on the current display without opening Home |
+| **Share Lyric Card (⌃⌥⌘L)** | Save and copy the current lyric in the active template's style |
+| **Focus Mode (⌃⌥⌘F)** | Hide or restore lyrics on every display |
 | **Pause Wallpaper** | Put your normal wallpaper back until you resume |
-| **Open Templates Folder** | Where your own templates live |
-| **Launch at Login** | Start automatically |
-| **What's New…** | The changelog; it also opens once after each update |
-| **Check for Updates…** | Look for a new release now. Turn **Automatically Install Updates** on or off |
+| **Settings… (⌘,)** | Playback, privacy, templates, history, updates and launch options |
 
 ## Make your own templates
 
@@ -156,7 +159,7 @@ ultrawide. Designs are saved as normal templates in the templates folder, so the
 ### With code
 
 A template is a folder with a `manifest.json` (name and settings) and an `index.html`. The quickest start is
-**Open Spotify Wallpaper → pick a template → ⋯ → Duplicate & edit code**. That copies it to
+**Open Lirica → pick a template → ⋯ → Duplicate & edit code**. That copies it to
 `~/Library/Application Support/Spotify Wallpaper/Templates/`, and the preview and desktop reload every time you save.
 
 ```html
@@ -194,14 +197,15 @@ You get track data (`track.title`, `track.progress`, …), lyrics (`lyrics.curre
 `--line-time` CSS variables), time-driven animation (`data-follow="song | line | seconds | minutes | hours"` maps a
 CSS animation onto the song, the current line or the clock, on the GPU), text with variables
 (`data-template="{{track.title}} · {{time.clock}}"`), cover colors (`--vibrant`, `--dominant`, `--p0`…`--p5`, …), smart components
-(`<lyrics-block>`, `<fit-text>`, `<swatch-row>`, `<wave-form>`, `<progress-bar>`) and animation hooks. The full
+(`<lyrics-block>`, `<fit-text>`, `<swatch-row>`, `<wave-form>`, `<progress-bar>`), working playback controls
+(`data-control="playPause | next | previous | seek | volume"`) and animation hooks. The full
 reference is in **[TEMPLATE_GUIDE.md](app/Resources/web/TEMPLATE_GUIDE.md)**, which is also copied into your
 templates folder.
 
 ### Sharing templates
 
 A template travels as one `.swtemplate` file (the template folder, zipped). In the app's window, open a template's
-**⋯** menu and choose **Export “…”…**; send the file to anyone with Spotify Wallpaper, who double-clicks it
+**⋯** menu and choose **Export “…”…**; send the file to anyone with Lirica, who double-clicks it
 (or uses **Import template…**) to install it. Built-in templates export too, so you can share a tuned copy.
 
 To install from the web, link to `spotify-wallpaper://install?url=<https address of a .swtemplate>`. The app
@@ -215,11 +219,11 @@ web pages, so only install ones from people you trust.
 ## How it works
 
 ```
-Spotify app ──notifications + a light check each second, on a background thread──▶ Engine ──▶ lyrics: LRCLIB + NetEase + QQ Music + Kugou → consensus timing
-                                           │         cover art → colors via k-means
-                                           │
-                     ┌─────────────────────┴──────────────────────┐
-                     ▼                                            ▼
+Spotify / Apple Music / per-app Now Playing sessions ──background monitor──▶ Engine ──▶ lyrics: LRCLIB + NetEase + QQ Music + Kugou → consensus timing
+                                                                         │         cover art → colors via k-means
+                                                                         │
+                                                   ┌─────────────────────┴──────────────────────┐
+                                                   ▼                                            ▼
    Live layer (per screen)                          Still (per screen, on track change)
    WKWebView in a window just above the             same template rendered off-screen, snapshotted
    wallpaper and below the desktop icons,           and set as the real wallpaper via NSWorkspace
@@ -235,10 +239,13 @@ Spotify app ──notifications + a light check each second, on a background thr
   Kugou) count once. Results are cached per song.
 - Templates are served from a private `sw://` URL scheme, so they load the shared runtime, the cover and system
   fonts without any local server.
+- Now Playing apps are read as independent sessions, so the default player can keep winning when Spotify and a
+  browser are active together. macOS exposes the browser, not its tab, so browser media counts as YouTube Music when
+  **YouTube Music** is selected as the default.
 - macOS only sets the wallpaper of the current Space, so the still is re-applied when you switch Spaces. With
   "Show on all Spaces" on, it applies to all of them at once. Each screen alternates between two files, because
   macOS caches wallpapers by path.
-- Your original wallpaper is remembered and restored on quit, on pause and when Spotify stops.
+- Your original wallpaper is remembered and restored on quit, on pause and when the followed player stops.
 
 ## Build from source
 
@@ -254,7 +261,7 @@ cd app
 See what every lyrics source returns for a song, and the combined timing:
 
 ```sh
-"app/build/Spotify Wallpaper.app/Contents/MacOS/SpotifyWallpaper" --lyrics "Blinding Lights" "The Weeknd" "After Hours" 200
+"app/build/Lirica.app/Contents/MacOS/SpotifyWallpaper" --lyrics "Blinding Lights" "The Weeknd" "After Hours" 200
 ```
 
 ### Releasing
@@ -269,7 +276,7 @@ universal app on a macOS runner and publishes a GitHub release, and installed co
 README screenshots are generated with the bundled sample song:
 
 ```sh
-"app/build/Spotify Wallpaper.app/Contents/MacOS/SpotifyWallpaper" --screenshots docs/screenshots
+"app/build/Lirica.app/Contents/MacOS/SpotifyWallpaper" --screenshots docs/screenshots
 ```
 
 `prototype/` holds the original Python proof of concept, which drew frames with Pillow. It's kept for reference and

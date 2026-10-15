@@ -1,4 +1,4 @@
-# Spotify Wallpaper template guide
+# Lirica template guide
 
 Don't want to write code? Use **Template Builder…** in the menu: it makes templates visually, and its **Edit Code**
 button turns any design into an HTML template you can keep editing here.
@@ -7,12 +7,12 @@ A template is a folder with two files:
 
 ```
 my-template/
-  manifest.json   name, description, category and the settings shown in Spotify Wallpaper's inspector
+  manifest.json   name, description, category and the settings shown in Lirica's inspector
   index.html      the wallpaper: plain HTML + CSS (+ optional JS)
 ```
 
 Put it in this folder (`~/Library/Application Support/Spotify Wallpaper/Templates`). The easiest start is
-**Open Spotify Wallpaper → pick a template → ⋯ → Duplicate & edit code**. While a custom template is being edited, the preview and
+**Open Lirica → pick a template → ⋯ → Duplicate & edit code**. While a custom template is being edited, the preview and
 the wallpaper reload every time you save.
 
 Each template runs in two ways:
@@ -85,6 +85,7 @@ Use `vmin`/`vw`/`vh` units so it adapts to both laptop and ultrawide screens.
 - `data-src="track.cover"` sets `src` on an image.
 - `data-show="lyrics.hasLyrics"` hides the element when false. Prefix `!` to invert.
 - `data-attr-<name>="expr"` sets any attribute, e.g. `data-attr-after="params.linesAfter"`.
+- `data-control="playPause"` makes the element control Spotify — see **Playback controls** below.
 
 ### CSS variables
 
@@ -132,6 +133,43 @@ runs on each beat with `{ strength, bpm, last, level }`, and `Wallpaper.beat` al
 - `<wave-form bars="56">` draws a waveform that changes with every line (`.bar`, uses `currentColor`).
 - `<progress-bar>` is a bar filled to `--progress` (`.fill`, uses `currentColor`).
 - `<div class="sw-grain">` adds a film-grain overlay.
+
+## Playback controls
+
+Mark an element with `data-control` and it becomes a real control for the player Lirica is following:
+
+```html
+<progress-bar data-control="seek" data-show="params.controls"></progress-bar>
+<div data-control="previous">‹‹</div>
+<div data-control="playPause">⏯</div>
+<div data-control="next">››</div>
+```
+
+| `data-control` | What it does |
+|---|---|
+| `playPause` | a click toggles play/pause |
+| `next` / `previous` | a click skips a track |
+| `seek` | a click or drag across the element seeks to that point in the song |
+| `volume` | clicking or dragging horizontally sets volume; scrolling steps it like the volume keys |
+
+On the desktop the live layer sits behind Finder's icons. Each control gets a small clear native hit window just
+above those icons but below every application window, so a control hidden under another app receives nothing. The
+rest of the desktop remains untouched, and Lirica never activates or takes the keyboard. No privacy permission is
+needed. In the preview window and the template builder the controls are simply clickable.
+
+A few things worth knowing:
+
+- The element's whole box is the target, so give small glyphs a padded wrapper.
+- Swap play/pause glyphs with `html.is-playing` (`html:not(.is-playing)` while paused), as Minimal and Glow do.
+- Gate them with a bool setting: `data-show="params.controls"`.
+- From your own JS, `Wallpaper.control("next")`, `("playPause")`, `("previous")`, `("seek", 0.5)` (0–1 of the
+  song), `("volume", 0.4)` (0–1) or `("volumeBy", ±1)` (±100%). Every command also reaches
+  `Wallpaper.on("control", ({ command, value }) => { … })`.
+- A control dims while it's held (`.sw-pressed`) and bounces when clicked (`.sw-tap`); style those classes to give
+  your own reaction. Both use the `scale` property, so they stack with your transforms.
+- The track and controls follow one player—Spotify, Apple Music, YouTube Music, a browser or another app on the
+  Mac's Now Playing feed. Controls never launch or switch players. Volume is unavailable for Now Playing apps.
+- Controls can be switched off app-wide under **Wallpaper controls** in Settings.
 
 ## Animation
 

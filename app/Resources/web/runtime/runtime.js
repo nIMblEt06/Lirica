@@ -1,5 +1,5 @@
 /*
- * Spotify Wallpaper template runtime. Every template includes this. It:
+ * Lirica template runtime. Every template includes this. It:
  *   - binds data to the page:      data-bind="track.title|upper"  data-src="track.cover"
  *                                  data-show="lyrics.hasLyrics"    data-attr-after="params.linesAfter"
  *   - exposes CSS variables:       --progress --line-progress --cover-url --vibrant --p0… --param-<key>
@@ -7,6 +7,7 @@
  *   - offers hooks for custom JS:  Wallpaper.on('render', ctx => …)
  *   - tags <html> with the moment: sw-focus, sw-duet, sw-weather-<condition>, sw-phase-<night|dawn|day|dusk>
  *   - relays beats from the app:   Wallpaper.on('beat', b => …), --beat (decaying pulse) and --level
+ *   - playback controls:           data-control="playPause|next|previous|seek|volume" click, drag or scroll
  * See TEMPLATE_GUIDE.md in the templates folder for the full reference.
  */
 (function () {
@@ -311,11 +312,18 @@
     }
     for (const el of document.querySelectorAll("[data-src]")) {
       const v = evaluate(el.dataset.src, ctx);
-      if (v && el.getAttribute("src") !== v) el.setAttribute("src", v);
+      if (v && el.getAttribute("src") !== v) {
+        const replacing = el.hasAttribute("src");
+        el.setAttribute("src", v);
+        if (replacing && el.animate) el.animate([{ opacity: 0.2 }, { opacity: 1 }], { duration: 420, easing: "ease-out" });
+      }
     }
     for (const el of document.querySelectorAll("[data-show]")) {
       const hide = !evaluate(el.dataset.show, ctx);
-      if (el.hidden !== hide) el.hidden = hide;
+      if (el.hidden !== hide) {
+        el.hidden = hide;
+        if (!hide && el.animate) el.animate([{ opacity: 0, transform: "translateY(0.3em)" }, { opacity: 1, transform: "none" }], { duration: 340, easing: "ease-out" });
+      }
     }
   }
 
@@ -467,6 +475,148 @@
     }
   }
 
+  // ---------- playback controls ----------
+  // Elements with data-control control the real Spotify: playPause | next | previous | seek | volume.
+  // A click sends the command to the app; seek (and volume) also follow a drag, volume follows the wheel.
+  // The app places a tiny clear native hit window over each of these elements, below application windows. The
+  // runtime reports their rectangles below and receives native events through controlEvent().
+
+  function sendControl(command, value) {
+    const handler = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.swCommand;
+    if (handler) handler.postMessage(value == null ? { command } : { command, value });
+    optimisticControl(command, value);
+    emit("control", { command, value });
+  }
+  Wallpaper.control = sendControl;
+
+  const controlOf = (e) => (e.target && e.target.closest ? e.target.closest("[data-control]") : null);
+
+  document.addEventListener("click", (e) => {
+    const el = controlOf(e), command = el && el.dataset.control;
+    if (!el) return;
+    el.classList.remove("sw-tap");
+    void el.offsetWidth;  // restart the bounce if it's clicked again mid-way
+    el.classList.add("sw-tap");
+    if (command === "playPause" || command === "next" || command === "previous") sendControl(command);
+  });
+  document.addEventListener("animationend", (e) => { if (e.target.classList) e.target.classList.remove("sw-tap"); });
+
+  // a control dims and shrinks while it's held (sw-pressed); the click then bounces it back (sw-tap)
+  let pressed = null;
+  document.addEventListener("pointerdown", (e) => {
+    const el = controlOf(e);
+    if (!el || e.button !== 0) return;
+    pressed = el;
+    el.classList.add("sw-pressed");
+  });
+  const releasePress = () => {
+    if (pressed) pressed.classList.remove("sw-pressed");
+    pressed = null;
+  };
+  document.addEventListener("pointerup", releasePress);
+  document.addEventListener("pointercancel", releasePress);
+
+  // a long press on a control shouldn't pop the page's (empty) context menu over the desktop
+  document.addEventListener("contextmenu", (e) => { if (controlOf(e)) e.preventDefault(); });
+
+  // Drag to seek (or set the volume): throttled while dragging, then once more on release.
+  const CONTROL_EVERY = 120;  // ms
+  let scrub = null;
+  function scrubTo(e) {
+    const r = scrub.el.getBoundingClientRect();
+    scrub.value = clamp((e.clientX - r.left) / Math.max(1, r.width), 0, 1);
+    const now = Date.now();
+    if (now - scrub.last >= CONTROL_EVERY) { scrub.last = now; sendControl(scrub.mode, scrub.value); }
+  }
+  document.addEventListener("pointerdown", (e) => {
+    const el = controlOf(e), mode = el && el.dataset.control;
+    if ((mode !== "seek" && mode !== "volume") || e.button !== 0) return;
+    e.preventDefault();
+    // Native wallpaper events are replayed as synthetic pointer events; WebKit only permits capture for a real
+    // active pointer, so capture is best-effort. `scrub` below already keeps the drag alive across the page.
+    try { if (el.setPointerCapture) el.setPointerCapture(e.pointerId); } catch (_) {}
+    scrub = { mode, el, id: e.pointerId, last: 0, value: null };
+    scrubTo(e);
+  });
+  document.addEventListener("pointermove", (e) => { if (scrub && e.pointerId === scrub.id) scrubTo(e); });
+  const endScrub = (e) => {
+    if (!scrub || (e && e.pointerId !== scrub.id)) return;
+    if (scrub.value != null) sendControl(scrub.mode, scrub.value);
+    scrub = null;
+  };
+  document.addEventListener("pointerup", endScrub);
+  document.addEventListener("pointercancel", endScrub);
+
+  // The wheel over a volume control (or anything inside it) steps it like the volume keys (1/16th each).
+  let wheelAccum = 0, wheelTimer = null;
+  document.addEventListener("wheel", (e) => {
+    const el = e.target && e.target.closest ? e.target.closest('[data-control="volume"]') : null;
+    if (!el) return;
+    e.preventDefault();
+    wheelAccum += e.deltaY;
+    if (wheelTimer) return;
+    wheelTimer = setTimeout(() => {
+      wheelTimer = null;
+      const raw = -wheelAccum;
+      if (Math.abs(raw) < 2) return;  // tiny trackpad deltas keep accumulating
+      wheelAccum = 0;
+      const steps = clamp(raw > 0 ? Math.max(1, Math.round(raw / 12)) : Math.min(-1, Math.round(raw / 12)), -3, 3);
+      sendControl("volumeBy", steps / 16);
+    }, 150);
+  }, { passive: false });
+
+  // A genuine wallpaper-level macOS window never receives mouse events. Small desktop-icon-level hit windows replay
+  // their ordinary AppKit events into the page through this function; no global monitor or privacy permission.
+  let nativeControlTarget = null;
+  function nativeControlEvent(e) {
+    const atPoint = document.elementFromPoint(+e.x || 0, +e.y || 0);
+    const control = atPoint && atPoint.closest ? atPoint.closest("[data-control]") : null;
+    const pointer = (name, target, buttons) => target && target.dispatchEvent(new PointerEvent(name, {
+      bubbles: true, cancelable: true, composed: true, pointerId: 7301, pointerType: "mouse", isPrimary: true,
+      button: 0, buttons, clientX: +e.x || 0, clientY: +e.y || 0,
+    }));
+    if (e.type === "down") {
+      nativeControlTarget = control;
+      pointer("pointerdown", control, 1);
+    } else if (e.type === "drag") {
+      pointer("pointermove", nativeControlTarget || control, 1);
+    } else if (e.type === "up") {
+      const target = nativeControlTarget;
+      pointer("pointerup", target || control, 0);
+      if (target && target === control) target.dispatchEvent(new MouseEvent("click", {
+        bubbles: true, cancelable: true, composed: true, button: 0, buttons: 0,
+        clientX: +e.x || 0, clientY: +e.y || 0,
+      }));
+      nativeControlTarget = null;
+    } else if (e.type === "wheel" && control) {
+      control.dispatchEvent(new WheelEvent("wheel", {
+        bubbles: true, cancelable: true, composed: true, deltaMode: WheelEvent.DOM_DELTA_PIXEL,
+        deltaY: +e.deltaY || 0, clientX: +e.x || 0, clientY: +e.y || 0,
+      }));
+    }
+  }
+
+  /** Tell the app where to place the small native hit windows. */
+  let controlRectSig = "";
+  function reportControlRects() {
+    if (!live) return;
+    const handler = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.swControls;
+    if (!handler) return;
+    const regions = [];
+    for (const el of document.querySelectorAll("[data-control]")) {
+      const r = el.getBoundingClientRect();
+      if (r.width > 0 && r.height > 0) regions.push({
+        x: +r.left.toFixed(1), y: +r.top.toFixed(1), width: +r.width.toFixed(1), height: +r.height.toFixed(1),
+        command: el.dataset.control || "",
+      });
+    }
+    const sig = JSON.stringify(regions);
+    if (sig === controlRectSig) return;
+    controlRectSig = sig;
+    handler.postMessage({ regions });
+  }
+  addEventListener("resize", reportControlRects);
+
   // ---------- render ----------
 
   function applyAll(ctx) {
@@ -477,12 +627,14 @@
     document.querySelectorAll("swatch-row").forEach((el) => swatchRow(el, ctx));
     document.querySelectorAll("wave-form").forEach((el) => waveForm(el, ctx));
     document.querySelectorAll("progress-bar").forEach(progressBar);
+    reportControlRects();
     emit("render", ctx);
   }
 
   function layoutAll(ctx) {
     document.querySelectorAll("fit-text").forEach(fitText);
     document.querySelectorAll("lyrics-block").forEach((el) => positionLyrics(el, ctx));
+    reportControlRects();
     emit("layout", ctx);
   }
 
@@ -569,6 +721,32 @@
     return derive({ ...live, track: { ...live.track, position: pos }, lyrics: { ...live.lyrics, index: indexAt(lines, pos) } });
   }
 
+  /** Playback state changes more often than full template state. Keep glyphs, labels and CSS motion in sync. */
+  function applyPlaybackState(ctx) {
+    const playing = !!ctx.track.isPlaying;
+    document.documentElement.classList.toggle("is-playing", playing);
+    for (const el of document.querySelectorAll('[data-control="playPause"]')) {
+      el.setAttribute("aria-label", playing ? "Pause" : "Play");
+    }
+  }
+
+  /** Make a control feel immediate; the next native clock update remains authoritative and corrects any failure. */
+  function optimisticControl(command, value) {
+    if (!live || paused) return;
+    if (command === "playPause") {
+      const position = livePosition();
+      live.track = { ...live.track, position, isPlaying: !live.track.isPlaying, stamp: Date.now() };
+      liveUpdate();
+    } else if (command === "seek" && Number.isFinite(value) && live.track.duration > 0) {
+      live.track = {
+        ...live.track,
+        position: clamp(value, 0, 1) * live.track.duration,
+        stamp: Date.now(),
+      };
+      liveUpdate();
+    }
+  }
+
   function restartEnterAnimations() {
     for (const el of document.querySelectorAll("[data-animate]")) {
       el.classList.remove("sw-enter");
@@ -581,6 +759,7 @@
   function liveUpdate() {
     if (!live || paused) return;
     const ctx = liveContext();
+    applyPlaybackState(ctx);
     const lineChanged = ctx.lyrics.index !== liveIdx;
     if (liveDirty || lineChanged) {
       const firstForTrack = liveDirty;
@@ -680,8 +859,10 @@
         if (!live || paused) return;
         const ctx = liveContext();
         Wallpaper.ctx = ctx;
+        applyPlaybackState(ctx);
         applyBindings(ctx);  // elapsed time, clock
         momentClasses(ctx);  // the time of day moves on
+        reportControlRects();  // drift of animated controls
         emit("tick", ctx);
       }, 1000);
     });
@@ -741,7 +922,7 @@
     requestAnimationFrame(beatPulse);
   }
 
-  window.__sw = { render: schedule, live: startLive, clock: setClock, pause: setPaused, beat: onBeat };
+  window.__sw = { render: schedule, live: startLive, clock: setClock, pause: setPaused, beat: onBeat, controlEvent: nativeControlEvent };
   // The Customize window's preview talks over postMessage.
   window.addEventListener("message", (e) => {
     const m = e.data || {};

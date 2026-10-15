@@ -1,6 +1,41 @@
 # Changelog
 
-All notable changes to Spotify Wallpaper. Versions follow [semantic versioning](https://semver.org).
+All notable changes to Lirica. Versions follow [semantic versioning](https://semver.org).
+
+## 1.7.0 — 2026-10-15
+
+### Changed
+- **The app is now Lirica.** Your templates, settings and history stay where they were.
+- **Wallpaper controls now live in Settings.** Small transparent hit windows sit over visible controls at Finder's
+  desktop-icon level, so they receive normal clicks while every application window remains safely above them.
+
+### Added
+- **Control playback from the wallpaper.** Templates can now put real playback controls on your desktop: click
+  play/pause and skip, drag a progress bar to seek. In **Classic** the iPod's click wheel works — scroll it for the
+  volume, click its edges to skip and its centre to play or pause — and **Minimal**, **Glow** and **Classic** carry
+  transports and a seekable progress bar.
+- Clicks reach the page only while the pointer is over a control of a template that has them, so icons, right-clicks
+  and drags on the rest of the desktop behave exactly as before; the wallpaper never activates and never takes the
+  keyboard. Templates choose what to offer with `data-control="playPause | next | previous | seek | volume"` — the
+  template guide has the details — and it can be turned off app-wide under **Wallpaper controls** in Settings.
+- **Apple Music works too.** The wallpaper follows whichever player is playing, Spotify or Apple Music, and the
+  controls go to that one. The first time, macOS asks whether Lirica may control Music.
+- **Other music apps:** the wallpaper also follows YouTube Music, browsers and any other app that shows in the Mac's
+  Now Playing feed, and the controls work for them too. Settings has a **Default music player**: Lirica follows it when it
+  starts playing, and switches to whatever plays after an hour of silence. Clicking controls never switches the player.
+  Turn **Other players** off there if you don't want the feed.
+- **Click feedback:** a control shrinks and dims while it's held and bounces with a flash when clicked.
+- **Three control templates:** **Remote** (a glass remote: scroll the pad for volume, the centre plays and pauses, the
+  sides skip), **Jukebox** (an arcade cabinet with coloured buttons, a volume knob and a neon seek bar) and **Island**
+  (a floating pill over the blurred cover, with the lyric above it).
+
+### Fixed
+- The live wallpaper now stays at the real macOS desktop level. It no longer covers the focused app when playback
+  changes or while switching Spaces, and Space changes no longer force the wallpaper window to the front.
+- Lirica now tracks each Now Playing app independently, so the selected default wins when Spotify and YouTube Music
+  play at the same time. Browser playback follows the **YouTube Music** default instead of being mistaken for
+  **Other Apps**, and controls remain scoped to the player shown on the wallpaper.
+- Quitting no longer asks for access to Downloads or Pictures when the original wallpaper lives there.
 
 ## 1.6.0 — 2026-10-09
 
@@ -23,7 +58,7 @@ All notable changes to Spotify Wallpaper. Versions follow [semantic versioning](
 ## 1.5.0 — 2026-10-07
 
 ### Added
-- **Spotify Wallpaper has a home.** "Open Spotify Wallpaper…" (⌘O, or open the app again from Finder or the Dock)
+- **Lirica has a home.** "Open Lirica…" (⌘O, or open the app again from Finder or the Dock)
   shows your wallpaper live with its settings beside it as colour swatches, segmented controls and sliders, plus a
   shelf of recent and favourite templates. It replaces the Customize window and the menu's Template list.
 - **Browse all:** every template in a gallery grouped by feel (Lyrics, Painting, Print & paper, Objects, Calm, Yours),

@@ -31,6 +31,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var quickSwitcher: QuickSwitcher?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        Trace.start()
         if let probe = LyricsProbe.request {
             Task { await LyricsProbe.run(probe, paths: paths) }
             return
@@ -42,7 +43,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         installEditMenu()
         handleTermination()
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        statusItem.button?.image = NSImage(systemSymbolName: "music.note", accessibilityDescription: "Spotify Wallpaper")
+        statusItem.button?.image = NSImage(systemSymbolName: "music.note", accessibilityDescription: "Lirica")
         let menu = NSMenu()
         menu.delegate = self
         statusItem.menu = menu
@@ -181,7 +182,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(.separator())
 
         let ctrlOptCmd: NSEvent.ModifierFlags = [.control, .option, .command]
-        add(menu, "Open Spotify Wallpaper…", #selector(openHome), "o")
+        add(menu, "Open Lirica…", #selector(openHome), "o")
         add(menu, "Quick Switcher…", #selector(toggleQuickSwitcher), "w").keyEquivalentModifierMask = ctrlOptCmd
         menu.addItem(.separator())
         let share = add(menu, "Share Lyric Card", #selector(shareLyricCard), "l")
@@ -198,7 +199,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             menu.addItem(note)
         }
         add(menu, "Settings…", #selector(openSettingsTab), ",")
-        add(menu, "Quit Spotify Wallpaper", #selector(quit), "q")
+        add(menu, "Quit Lirica", #selector(quit), "q")
     }
 
     @discardableResult
@@ -277,7 +278,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let appItem = NSMenuItem()
         let appMenu = NSMenu()
         appMenu.addItem(withTitle: "Close Window", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
-        appMenu.addItem(withTitle: "Quit Spotify Wallpaper", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appMenu.addItem(withTitle: "Quit Lirica", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         appItem.submenu = appMenu
         main.addItem(appItem)
         let editItem = NSMenuItem()
@@ -335,6 +336,9 @@ extension AppDelegate {
             "sharingNow": focusMonitor.sharing ? focusMonitor.reason : "",
             "useWeather": engine.useWeather,
             "beatSync": engine.beatSync,
+            "musicPriority": MusicProvider.defaultProvider.rawValue,
+            "otherPlayers": engine.otherPlayersEnabled,
+            "wallpaperControls": engine.controlsEnabled,
             "shareFormat": shareCard.format.rawValue,
             "keepHistory": history.enabled,
             "historyCount": history.entries.count,
@@ -354,6 +358,9 @@ extension AppDelegate {
         case "hideWhileSharing": if on != hideLyricsWhileSharing { toggleHideWhileSharing() }
         case "useWeather": engine.useWeather = on
         case "beatSync": engine.beatSync = on
+        case "musicPriority": if let raw = value as? String, let p = MusicProvider(rawValue: raw) { MusicProvider.defaultProvider = p }
+        case "otherPlayers": engine.otherPlayersEnabled = on
+        case "wallpaperControls": engine.controlsEnabled = on
         case "shareFormat": if let raw = value as? String, let f = ShareCard.Format(rawValue: raw) { shareCard.format = f }
         case "keepHistory": history.enabled = on
         case "autoUpdate":
