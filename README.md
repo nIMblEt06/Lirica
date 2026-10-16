@@ -242,8 +242,9 @@ Spotify / Apple Music / per-app Now Playing sessions ──background monitor─
 - Templates are served from a private `sw://` URL scheme, so they load the shared runtime, the cover and system
   fonts without any local server.
 - Now Playing apps are read as independent sessions, so the default player can keep winning when Spotify and a
-  browser are active together. macOS exposes the browser, not its tab, so browser media counts as YouTube Music when
-  **YouTube Music** is selected as the default.
+  browser are active together. macOS exposes the browser, not its tab, so browser music counts as YouTube Music when
+  **YouTube Music** is selected as the default; short, unattributed social clips remain under **Other Apps** and are
+  released as soon as they pause.
 - macOS only sets the wallpaper of the current Space, so the still is re-applied when you switch Spaces. With
   "Show on all Spaces" on, it applies to all of them at once. Each screen alternates between two files, because
   macOS caches wallpapers by path.

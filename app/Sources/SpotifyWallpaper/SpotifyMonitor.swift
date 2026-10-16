@@ -54,14 +54,16 @@ final class SpotifyMonitor: @unchecked Sendable {
     private static let spotifyName = "Spotify"
     private static let musicName = "Music"
 
-    private static func fullSource(_ app: String, id: String, artwork: String) -> String {
+    /// `durationMilliseconds` keeps the wire format identical for both scripting APIs: Spotify reports milliseconds,
+    /// while Music reports seconds.
+    private static func fullSource(_ app: String, id: String, artwork: String, durationMilliseconds: String) -> String {
         """
         if application "\(app)" is running then
           tell application "\(app)"
             if player state is stopped then return "STOPPED"
             set t to current track
             set d to ASCII character 31
-            return (\(id)) & d & (name of t) & d & (artist of t) & d & (album of t) & d & (\(artwork)) & d & ((duration of t) * 1000) & d & (player position as text) & d & (player state as text)
+            return (\(id)) & d & (name of t) & d & (artist of t) & d & (album of t) & d & (\(artwork)) & d & (\(durationMilliseconds)) & d & (player position as text) & d & (player state as text)
           end tell
         end if
         return "NOT_RUNNING"
@@ -154,9 +156,11 @@ final class SpotifyMonitor: @unchecked Sendable {
     private func run() {
         // NSAppleScript objects stay on this one thread
         let spotify = Player(app: Self.spotifyName, light: Self.lightSource(Self.spotifyName, id: Self.spotifyIDExpr),
-                             full: Self.fullSource(Self.spotifyName, id: Self.spotifyIDExpr, artwork: "artwork url of t"))
+                             full: Self.fullSource(Self.spotifyName, id: Self.spotifyIDExpr, artwork: "artwork url of t",
+                                                   durationMilliseconds: "duration of t"))
         let music = Player(app: Self.musicName, light: Self.lightSource(Self.musicName, id: Self.musicIDExpr),
-                           full: Self.fullSource(Self.musicName, id: Self.musicIDExpr, artwork: "\"\""))
+                           full: Self.fullSource(Self.musicName, id: Self.musicIDExpr, artwork: "\"\"",
+                                                 durationMilliseconds: "(duration of t) * 1000"))
         var active = Source.spotify
         // which provider the wallpaper is following, and what was playing last time round
         var followed: MusicProvider?
@@ -176,7 +180,9 @@ final class SpotifyMonitor: @unchecked Sendable {
             if let t = m { found[.appleMusic] = (t, .music) }
             if otherOn {
                 for feed in nowPlaying?.sessions(now: Date()) ?? [] {
-                    let provider = MusicProvider.of(bundle: feed.bundle)
+                    if !feed.track.isPlaying,
+                       MusicProvider.isTransientBrowserMedia(bundle: feed.bundle, track: feed.track) { continue }
+                    let provider = MusicProvider.of(bundle: feed.bundle, track: feed.track)
                     let old = found[provider]
                     if old == nil || (feed.track.isPlaying && old?.track.isPlaying == false) ||
                         (feed.track.isPlaying == old?.track.isPlaying && feed.isCurrent) {

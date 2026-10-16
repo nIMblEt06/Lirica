@@ -2,6 +2,14 @@
 
 All notable changes to Lirica. Versions follow [semantic versioning](https://semver.org).
 
+## 1.7.3 — 2026-10-16
+
+### Fixed
+- Spotify durations are now converted from milliseconds correctly, fixing wildly long end times and lyric matches
+  rejected as the wrong recording. Lyric caches also retry immediately when corrected track metadata arrives.
+- Paused X and other short social-media clips no longer pin the wallpaper after browser playback ends or displace
+  music just because **YouTube Music** is the default player.
+
 ## 1.7.2 — 2026-10-15
 
 ### Changed
