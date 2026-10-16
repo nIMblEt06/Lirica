@@ -7,7 +7,7 @@ All notable changes to Lirica. Versions follow [semantic versioning](https://sem
 ### Added
 - **Choose exactly which music apps Lirica may follow.** Settings now lists Spotify, Apple Music, installed browsers,
   recognized music apps and anything newly detected through macOS Now Playing. Known music apps start on; unknown apps
-  start off.
+  start off. Arc, Chrome, Brave, Edge, Vivaldi, Opera and Chromium share one **Chromium browsers** switch.
 - **Browser music without an extension.** Lirica can read tabs from Safari, Arc, Chrome and other scriptable Chromium
   browsers, match the Now Playing title and artist to one unambiguous tab, and allow recognized music websites such as
   YouTube Music while rejecting X, ordinary YouTube and unknown sites by default. Browser sites are configurable too.

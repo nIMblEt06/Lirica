@@ -1050,11 +1050,13 @@ function renderSettings() {
   const sourceNote = (source) => {
     if (source.kind === "direct") return "Read directly from the app.";
     if (source.kind !== "browser") return source.kind === "other" ? "Detected in macOS Now Playing." : "Recognized music app.";
-    if (source.status === "ready") return "Recognized music tabs only · tab access on.";
-    if (source.status === "denied") return "Tab access denied · allow Lirica under Privacy & Security → Automation.";
-    if (source.status === "unsupported") return "This browser does not expose its tabs to Lirica.";
-    if (source.status === "error") return "Couldn't read its tabs; Lirica will try again.";
-    return "Recognized music tabs only · access is requested when it plays.";
+    const members = source.members ? `${source.members} · ` : "";
+    const affected = source.statusApps || source.name;
+    if (source.status === "ready") return `${members}Recognized music tabs only · tab access on.`;
+    if (source.status === "denied") return `${affected}: tab access denied · allow Lirica under Privacy & Security → Automation.`;
+    if (source.status === "unsupported") return `${affected} does not expose its tabs to Lirica.`;
+    if (source.status === "error") return `${affected}: couldn't read its tabs; Lirica will try again.`;
+    return `${members}Recognized music tabs only · access is requested when one plays.`;
   };
   const sourceRows = (v.musicSources || []).map((source) => `<div class="pref source-pref" title="${esc(source.bundle)}">
     <b>${esc(source.name)}</b><div class="ctl"><button type="button" class="tg" role="switch" aria-checked="${!!source.enabled}" aria-label="Use ${esc(source.name)}" data-source="${esc(source.bundle)}"></button></div>

@@ -75,7 +75,7 @@ with sliders or rewrite completely.
   scriptable Chromium browsers, Lirica locally matches Now Playing metadata to tab titles and addresses, then accepts
   only enabled music websites. YouTube Music can play while X, regular YouTube and ambiguous tabs are ignored. No
   browser extension, Accessibility permission, audio capture or page-content access is used; full addresses and tab
-  titles are never saved.
+  titles are never saved. Arc, Chrome, Brave, Edge, Vivaldi, Opera and Chromium share one **Chromium browsers** switch.
 - **Controls on the wallpaper itself:** templates can put real controls on your desktop — click play/pause and
   skip, drag a progress bar to seek, and in Classic scroll the iPod's click wheel for the volume. Clicks reach the
   page only while the pointer is over a control, so icons, right-clicks and drags on the rest of the desktop behave

@@ -21,4 +21,11 @@ final class MusicSourcePolicyTests: XCTestCase {
         XCTAssertTrue(MusicSourcePolicy.applicationAllowed(bundle: "company.thebrowser.Browser"))
         XCTAssertFalse(MusicSourcePolicy.applicationAllowed(bundle: "com.apple.QuickTimePlayerX", name: "QuickTime Player"))
     }
+
+    func testChromiumBrowsersShareOneSettingsGroup() {
+        XCTAssertTrue(MusicSourcePolicy.isChromiumBrowser("company.thebrowser.Browser"))
+        XCTAssertTrue(MusicSourcePolicy.isChromiumBrowser("com.google.Chrome"))
+        XCTAssertTrue(MusicSourcePolicy.isChromiumBrowser("com.brave.Browser"))
+        XCTAssertFalse(MusicSourcePolicy.isChromiumBrowser("com.apple.Safari"))
+    }
 }

@@ -29,6 +29,7 @@ enum MusicSourcePolicy {
     private static let observedSitesKey = "musicSource.observedSites"
     private static let browserStatusesKey = "musicSource.browserStatuses"
     private static let lock = NSLock()
+    static let chromiumGroup = "browser-group:chromium"
 
     private static let applications: [Application] = [
         .init(bundle: "com.spotify.client", name: "Spotify", kind: "direct", allowed: true, alwaysShow: true),
@@ -73,13 +74,23 @@ enum MusicSourcePolicy {
 
     static func isBrowser(_ bundle: String) -> Bool {
         let id = bundle.lowercased()
+        if isChromiumBrowser(bundle) { return true }
         return ["browser", "safari", "chrome", "chromium", "firefox", "edgemac", "brave", "opera", "vivaldi", "orion", "kagimacos"]
+            .contains { id.contains($0) }
+    }
+
+    static func isChromiumBrowser(_ bundle: String) -> Bool {
+        let id = bundle.lowercased()
+        if id == chromiumGroup { return true }
+        return ["thebrowser.browser", "chrome", "chromium", "brave", "edgemac", "vivaldi", "operasoftware.opera"]
             .contains { id.contains($0) }
     }
 
     static func applicationAllowed(bundle: String, name: String = "") -> Bool {
         let overrides = readBoolDictionary(applicationOverridesKey)
+        if isChromiumBrowser(bundle), let value = overrides[chromiumGroup] { return value }
         if let value = overrides[bundle] { return value }
+        if bundle == chromiumGroup { return true }
         if let known = applications.first(where: { $0.bundle == bundle }) { return known.allowed }
         if isBrowser(bundle) { return true }
         let haystack = (bundle + " " + name).lowercased()
@@ -89,7 +100,15 @@ enum MusicSourcePolicy {
     }
 
     static func setApplicationAllowed(_ allowed: Bool, bundle: String) {
-        mutateBoolDictionary(applicationOverridesKey) { $0[bundle] = allowed }
+        let key = isChromiumBrowser(bundle) ? chromiumGroup : bundle
+        mutateBoolDictionary(applicationOverridesKey) { values in
+            values[key] = allowed
+            if key == chromiumGroup {
+                for bundle in Array(values.keys) where bundle != chromiumGroup && isChromiumBrowser(bundle) {
+                    values[bundle] = nil
+                }
+            }
+        }
     }
 
     /// Returns true when the Settings snapshot changed.
@@ -162,9 +181,10 @@ enum MusicSourcePolicy {
         let bundles = Set(applications.compactMap { app in
             let installed = NSWorkspace.shared.urlForApplication(withBundleIdentifier: app.bundle) != nil
             return app.alwaysShow || installed || observed[app.bundle] != nil || overrides[app.bundle] != nil ? app.bundle : nil
-        }).union(observed.keys).union(overrides.keys)
+        }).union(observed.keys).union(overrides.keys.filter { $0 != chromiumGroup })
 
-        return bundles.map { bundle -> [String: Any] in
+        let chromiumBundles = bundles.filter(isChromiumBrowser)
+        var rows = bundles.filter { !isChromiumBrowser($0) }.map { bundle -> [String: Any] in
             let known = knownByBundle[bundle]
             let name = known?.name ?? observed[bundle] ?? bundle
             let kind = known?.kind ?? (isBrowser(bundle) ? "browser" : "other")
@@ -175,13 +195,38 @@ enum MusicSourcePolicy {
                 "enabled": applicationAllowed(bundle: bundle, name: name),
                 "status": statuses[bundle] ?? "waiting",
             ]
-        }.sorted { lhs, rhs in
+        }
+
+        if !chromiumBundles.isEmpty || overrides[chromiumGroup] != nil {
+            let members = chromiumBundles.sorted { lhs, rhs in
+                (catalogOrder[lhs] ?? Int.max) < (catalogOrder[rhs] ?? Int.max)
+            }
+            let names = members.map { knownByBundle[$0]?.name ?? observed[$0] ?? $0 }
+            let statusOrder = ["denied", "error", "ready", "unsupported", "waiting"]
+            let status = statusOrder.first { wanted in members.contains { statuses[$0] == wanted } } ?? "waiting"
+            let statusNames = zip(members, names).compactMap { bundle, name in
+                statuses[bundle] == status ? name : nil
+            }
+            let groupEnabled = overrides[chromiumGroup] ?? members.allSatisfy { overrides[$0] ?? true }
+            rows.append([
+                "bundle": chromiumGroup,
+                "name": "Chromium browsers",
+                "kind": "browser",
+                "enabled": groupEnabled,
+                "status": status,
+                "members": names.joined(separator: ", "),
+                "statusApps": statusNames.joined(separator: ", "),
+            ])
+        }
+
+        return rows.sorted { lhs, rhs in
             let order = ["direct": 0, "browser": 1, "music": 2, "other": 3]
             let lk = lhs["kind"] as? String ?? "other", rk = rhs["kind"] as? String ?? "other"
             let lo = order[lk] ?? 3, ro = order[rk] ?? 3
             if lo != ro { return lo < ro }
-            let lr = catalogOrder[lhs["bundle"] as? String ?? ""] ?? Int.max
-            let rr = catalogOrder[rhs["bundle"] as? String ?? ""] ?? Int.max
+            let lb = lhs["bundle"] as? String ?? "", rb = rhs["bundle"] as? String ?? ""
+            let lr = lb == chromiumGroup ? 3 : catalogOrder[lb] ?? Int.max
+            let rr = rb == chromiumGroup ? 3 : catalogOrder[rb] ?? Int.max
             if lr != rr { return lr < rr }
             return (lhs["name"] as? String ?? "").localizedCaseInsensitiveCompare(rhs["name"] as? String ?? "") == .orderedAscending
         }
