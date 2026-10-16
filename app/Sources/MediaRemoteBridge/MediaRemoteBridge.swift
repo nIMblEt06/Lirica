@@ -106,6 +106,7 @@ private func snapshot(_ client: AnyObject, artwork: Bool) -> [String: Any]? {
         "processIdentifier": clientPID,
         "bundleIdentifier": string("MRNowPlayingClientGetBundleIdentifier", from: client),
         "parentBundleIdentifier": string("MRNowPlayingClientGetParentAppBundleIdentifier", from: client),
+        "displayName": string("MRNowPlayingClientGetDisplayName", from: client),
     ]
     let reads = DispatchGroup()
     reads.enter()
