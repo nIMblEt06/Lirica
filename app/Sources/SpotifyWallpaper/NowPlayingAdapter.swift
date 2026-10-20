@@ -63,7 +63,11 @@ final class NowPlayingAdapter: @unchecked Sendable {
 
     struct Feed {
         let track: Track
+        /// The application users configure. For a browser helper/PWA this is its parent browser when available.
         let bundle: String
+        /// MediaRemote's immediate client identity, retained so dedicated YouTube Music wrappers can be recognized.
+        let sourceBundle: String
+        let name: String
         let pid: Int32
         let isCurrent: Bool
     }
@@ -102,7 +106,8 @@ final class NowPlayingAdapter: @unchecked Sendable {
                           artworkURL: artwork?.trackID == id ? artwork?.file ?? "" : "",
                           duration: Self.seconds(s["durationMicros"]),
                           position: max(0, position), isPlaying: playing)
-        return Feed(track: track, bundle: bundle, pid: pid, isCurrent: pid == currentPID)
+        return Feed(track: track, bundle: bundle, sourceBundle: ownBundle,
+                    name: s["displayName"] as? String ?? "", pid: pid, isCurrent: pid == currentPID)
     }
 
     /// Plays, pauses or skips: MediaRemote commands 2 (toggle), 4 (next) and 5 (previous).

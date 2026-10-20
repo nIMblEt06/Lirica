@@ -14,24 +14,32 @@ enum MusicProvider: String, CaseIterable {
         }
     }
 
-    /// The provider an app on the Now Playing feed belongs to. The feed identifies a browser, not its tab. When the
-    /// user chose YouTube Music as the default, browser playback is therefore treated as YouTube Music; otherwise it
-    /// remains under Other Apps. Standalone YouTube Music clients identify themselves directly.
-    static func of(bundle: String) -> MusicProvider {
+    /// The provider an app on the Now Playing feed belongs to. BrowserMediaResolver supplies the hostname when this
+    /// is a browser; without one the browser session is rejected before it gets here.
+    static func of(bundle: String, sourceBundle: String = "", name: String = "",
+                   browserHost: String? = nil) -> MusicProvider {
+        if let browserHost { return MusicSourcePolicy.provider(forHost: browserHost) }
         switch bundle {
         case "com.spotify.client": return .spotify
         case "com.apple.Music": return .appleMusic
         default:
-            let id = bundle.lowercased()
-            if id.contains("youtube") && id.contains("music") { return .youtubeMusic }
-            if defaultProvider == .youtubeMusic && isBrowser(id) { return .youtubeMusic }
+            let identity = (bundle + " " + sourceBundle + " " + name).lowercased()
+            if identity.contains("youtube") && identity.contains("music") { return .youtubeMusic }
             return .other
         }
     }
 
-    private static func isBrowser(_ id: String) -> Bool {
-        ["browser", "safari", "chrome", "chromium", "firefox", "edgemac", "brave", "opera", "vivaldi", "orion"]
-            .contains { id.contains($0) }
+    /// Browser media sessions often outlive a social clip indefinitely. They are useful while playing, but a paused
+    /// 15-second X/Reddit/etc. video must not pin the wallpaper over music that is playing elsewhere.
+    static func isTransientBrowserMedia(bundle: String, track: Track) -> Bool {
+        guard MusicSourcePolicy.isBrowser(bundle) else { return false }
+        let title = track.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let socialTitle = title.hasSuffix(" / X") ||
+            title.range(of: #"\son\sX:\s*[\"“]"#, options: [.regularExpression, .caseInsensitive]) != nil
+        let unattributedShortClip = track.artist.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+            track.album.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+            track.duration > 0 && track.duration <= 90
+        return socialTitle || unattributedShortClip
     }
 
     /// The default provider, stored in the Settings tab. Spotify until you choose otherwise.

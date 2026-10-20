@@ -58,6 +58,7 @@ final class Engine {
     var onStateChange: (() -> Void)?
     var onClock: ((String) -> Void)?
     var onTemplateFilesChanged: (() -> Void)?
+    var onMusicSourcesChanged: (() -> Void)?
     /// The finished still for the primary screen (JPEG), the track and template it shows. Feeds the history.
     var onStillRendered: ((Data, NSScreen, Track, String) -> Void)?
 
@@ -102,7 +103,10 @@ final class Engine {
     /// Follows players other than Spotify and Music (browsers, YouTube, any app on the Now Playing feed).
     var otherPlayersEnabled: Bool {
         get { UserDefaults.standard.object(forKey: "otherPlayers") as? Bool ?? true }
-        set { UserDefaults.standard.set(newValue, forKey: "otherPlayers") }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "otherPlayers")
+            spotify.checkNow()
+        }
     }
 
     var controlsEnabled: Bool {
@@ -176,6 +180,7 @@ final class Engine {
             self.latestStamp = stamp
             self.tick()
         }
+        spotify.onSourcesChanged = { [weak self] in self?.onMusicSourcesChanged?() }
         spotify.start()
         startDataServices()
         Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
@@ -212,6 +217,11 @@ final class Engine {
         liveKeys.removeAll()
         stillKeys.removeAll()
         tick()
+    }
+
+    /// Re-evaluate the followed player immediately after a source or site rule changes.
+    func musicSourcesChanged() {
+        spotify.checkNow()
     }
 
     /// The template `screen` shows: its own if it has one, else the default.

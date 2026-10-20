@@ -38,6 +38,7 @@ struct LyricCandidate {
 final class LyricsService {
     static let sources = ["LRCLIB", "NetEase", "QQ Music", "Kugou"]
     static let translatingSources: Set<String> = ["NetEase", "QQ Music"]
+    private static let cacheSchema = 4
     private let cacheDir: URL
 
     init(paths: Paths) {
@@ -52,6 +53,7 @@ final class LyricsService {
         var cached: [String: Any] = [:]
         if !refresh, let data = try? Data(contentsOf: file) {
             cached = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] ?? [:]
+            if !Self.cacheMatches(cached, track: track) { cached = [:] }
         }
         let now = Date().timeIntervalSince1970
         let missing = Self.sources.filter { source in
@@ -76,6 +78,8 @@ final class LyricsService {
                 case .some(.some(let c)): cached[source] = c.json
                 }
             }
+            cached["_schema"] = Self.cacheSchema
+            cached["_track"] = Self.cacheMetadata(track)
             if let data = try? JSONSerialization.data(withJSONObject: cached) { try? data.write(to: file) }
         }
         return Self.sources.compactMap { (cached[$0] as? [String: Any]).flatMap(LyricCandidate.init(json:)) }
@@ -84,6 +88,23 @@ final class LyricsService {
     private func cacheFile(_ track: Track) -> URL {
         let safe = track.id.replacingOccurrences(of: "[^A-Za-z0-9]", with: "_", options: .regularExpression)
         return cacheDir.appendingPathComponent(safe + ".v3.json")
+    }
+
+    /// Negative results are useful, but only for the metadata that produced them. A corrected title or duration must
+    /// retry immediately rather than inheriting a day-old "not found" from a malformed player reading.
+    private static func cacheMatches(_ cache: [String: Any], track: Track) -> Bool {
+        guard cache["_schema"] as? Int == cacheSchema,
+              let saved = cache["_track"] as? [String: Any],
+              saved["title"] as? String == Match.normalize(Match.cleanTitle(track.title)),
+              saved["artist"] as? String == Match.normalize(track.artist),
+              let oldDuration = saved["duration"] as? Double else { return false }
+        let duration = track.duration.isFinite ? track.duration : 0
+        return abs(oldDuration - duration) <= 10
+    }
+
+    private static func cacheMetadata(_ track: Track) -> [String: Any] {
+        ["title": Match.normalize(Match.cleanTitle(track.title)), "artist": Match.normalize(track.artist),
+         "duration": track.duration.isFinite ? track.duration : 0]
     }
 
     /// nil = request failed; .some(nil) = the source answered but has no lyrics for this track.
@@ -124,7 +145,9 @@ final class LyricsService {
     private static func lyrics(from c: LyricCandidate, duration: Double) -> Lyrics {
         if c.synced { return Lyrics(lines: c.lines, synced: true, singers: c.singers) }
         // no timestamps: spread the lines evenly across the song as a rough guess
-        let start = duration * 0.08, end = duration * 0.95
+        let estimated = max(60, min(15 * 60, Double(c.lines.count) * 4))
+        let length = Match.usableDuration(duration) ?? estimated
+        let start = length * 0.08, end = length * 0.95
         let step = (end - start) / Double(max(1, c.lines.count))
         return Lyrics(lines: c.lines.enumerated().map { var l = $0.element; l.t = start + Double($0.offset) * step; return l },
                       synced: false, singers: c.singers)
@@ -229,6 +252,12 @@ final class LyricsService {
 // MARK: - text matching
 
 enum Match {
+    /// Bad player metadata must not veto an otherwise exact title/artist match. Six hours covers even unusually long
+    /// music while rejecting the common milliseconds-as-seconds failure mode.
+    static func usableDuration(_ value: Double) -> Double? {
+        value.isFinite && value > 0 && value <= 6 * 60 * 60 ? value : nil
+    }
+
     static func normalize(_ s: String) -> String {
         let lowered = s.lowercased().folding(options: .diacriticInsensitive, locale: nil)
         let noBrackets = lowered.replacingOccurrences(of: #"\([^)]*\)|\[[^\]]*\]"#, with: " ", options: .regularExpression)
@@ -280,8 +309,8 @@ enum Match {
         let artistOK = a > 0.5 || normalize(artist).contains(normalize(track.artist).components(separatedBy: " ").first ?? "")
         guard t >= 0.6, artistOK else { return nil }
         var score = t + a * 0.5
-        if let d = duration, d > 0 {
-            let diff = abs(d - track.duration)
+        if let expected = usableDuration(track.duration), let d = duration.flatMap(usableDuration) {
+            let diff = abs(d - expected)
             guard diff <= 6 else { return nil }
             score -= diff / 10
         }
@@ -524,21 +553,26 @@ private enum LRCLIB {
     static func fetch(_ t: Track) async -> LyricCandidate?? {
         var get = URLComponents(string: "https://lrclib.net/api/get")!
         get.queryItems = [.init(name: "track_name", value: t.title), .init(name: "artist_name", value: t.artist),
-                          .init(name: "album_name", value: t.album), .init(name: "duration", value: String(Int(t.duration.rounded())))]
+                          .init(name: "album_name", value: t.album)]
+        if let duration = Match.usableDuration(t.duration) {
+            get.queryItems?.append(.init(name: "duration", value: String(Int(duration.rounded()))))
+        }
         var record = await LyricsService.getJSON(get.url!) as? [String: Any]
         if record?["id"] == nil {
             var search = URLComponents(string: "https://lrclib.net/api/search")!
             search.queryItems = [.init(name: "track_name", value: Match.cleanTitle(t.title)), .init(name: "artist_name", value: t.artist)]
             guard let any = await LyricsService.getJSON(search.url!) else { return nil }
-            let results = (any as? [[String: Any]] ?? []).filter {
-                Match.score(title: $0["trackName"] as? String ?? "", artist: $0["artistName"] as? String ?? "",
-                            duration: $0["duration"] as? Double, for: t) != nil
+            let results = (any as? [[String: Any]] ?? []).compactMap { result -> ([String: Any], Double)? in
+                Match.score(title: result["trackName"] as? String ?? "", artist: result["artistName"] as? String ?? "",
+                            duration: result["duration"] as? Double, for: t).map { (result, $0) }
             }
             record = results.sorted { a, b in
-                let sa = a["syncedLyrics"] is String, sb = b["syncedLyrics"] is String
+                let sa = a.0["syncedLyrics"] is String, sb = b.0["syncedLyrics"] is String
                 if sa != sb { return sa }
-                return abs(((a["duration"] as? Double) ?? 0) - t.duration) < abs(((b["duration"] as? Double) ?? 0) - t.duration)
-            }.first
+                if a.1 != b.1 { return a.1 > b.1 }
+                guard let duration = Match.usableDuration(t.duration) else { return false }
+                return abs(((a.0["duration"] as? Double) ?? 0) - duration) < abs(((b.0["duration"] as? Double) ?? 0) - duration)
+            }.first?.0
         }
         if let synced = record?["syncedLyrics"] as? String, !synced.isEmpty {
             return .some(LyricCandidate(source: "LRCLIB", lines: LyricsService.parseLRC(synced, track: t), synced: true))
@@ -629,10 +663,11 @@ private enum QQMusic {
 
 private enum Kugou {
     static func fetch(_ t: Track) async -> LyricCandidate?? {
+        let duration = Match.usableDuration(t.duration) ?? 0
         var search = URLComponents(string: "https://lyrics.kugou.com/search")!
         search.queryItems = [.init(name: "ver", value: "1"), .init(name: "man", value: "yes"), .init(name: "client", value: "pc"),
                              .init(name: "keyword", value: "\(t.artist) - \(Match.cleanTitle(t.title))"),
-                             .init(name: "duration", value: String(Int(t.duration * 1000))), .init(name: "hash", value: "")]
+                             .init(name: "duration", value: String(Int(duration * 1000))), .init(name: "hash", value: "")]
         guard let res = await LyricsService.getJSON(search.url!) as? [String: Any], res["status"] as? Int == 200 else { return nil }
         let candidates = res["candidates"] as? [[String: Any]] ?? []
         let best = candidates.compactMap { c -> ([String: Any], Double)? in

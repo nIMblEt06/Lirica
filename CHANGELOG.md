@@ -2,6 +2,23 @@
 
 All notable changes to Lirica. Versions follow [semantic versioning](https://semver.org).
 
+## 1.7.3 — 2026-10-16
+
+### Added
+- **Choose exactly which music apps Lirica may follow.** Settings now lists Spotify, Apple Music, installed browsers,
+  recognized music apps and anything newly detected through macOS Now Playing. Known music apps start on; unknown apps
+  start off. Arc, Chrome, Brave, Edge, Vivaldi, Opera and Chromium share one **Chromium browsers** switch.
+- **Browser music without an extension.** Lirica can read tabs from Safari, Arc, Chrome and other scriptable Chromium
+  browsers, match the Now Playing title and artist to one unambiguous tab, and allow recognized music websites such as
+  YouTube Music while rejecting X, ordinary YouTube and unknown sites by default. Browser sites are configurable too.
+  Matching stays local; full addresses and tab titles are never saved, and uncertain matches are ignored.
+
+### Fixed
+- Spotify durations are now converted from milliseconds correctly, fixing wildly long end times and lyric matches
+  rejected as the wrong recording. Lyric caches also retry immediately when corrected track metadata arrives.
+- Paused X and other short social-media clips no longer pin the wallpaper after browser playback ends or displace
+  music just because **YouTube Music** is the default player.
+
 ## 1.7.2 — 2026-10-15
 
 ### Changed

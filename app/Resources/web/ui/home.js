@@ -274,6 +274,7 @@ function renderLive() {
   $("sampleNote").hidden = !isSample();
   if (S.tab === "displays") renderDisplays();
   if (S.tab === "lyrics") renderLyrics();
+  if (S.tab === "settings") renderSettings();
   if (S.tab === "wallpaper" && S.view === "gallery") renderGallery();
 }
 function clock(c) {
@@ -1046,6 +1047,25 @@ function renderSettings() {
   const btn = (action, label, cls = "") => `<button type="button" class="mbtn sm ${cls}" data-act="${action}">${label}</button>`;
   const seg = (key, opts) => `<div class="seg" data-seg="${key}">${opts.map(([val, label]) => `<button type="button" data-val="${esc(val)}" class="${String(v[key]) === String(val) ? "on" : ""}">${label}</button>`).join("")}</div>`;
   const card = (title, rows) => `<div class="card"><div class="card-head"><span class="lbl">${title}</span></div>${rows.join("")}</div>`;
+  const sourceNote = (source) => {
+    if (source.kind === "direct") return "Read directly from the app.";
+    if (source.kind !== "browser") return source.kind === "other" ? "Detected in macOS Now Playing." : "Recognized music app.";
+    const members = source.members ? `${source.members} · ` : "";
+    const affected = source.statusApps || source.name;
+    if (source.status === "ready") return `${members}Recognized music tabs only · tab access on.`;
+    if (source.status === "denied") return `${affected}: tab access denied · allow Lirica under Privacy & Security → Automation.`;
+    if (source.status === "unsupported") return `${affected} does not expose its tabs to Lirica.`;
+    if (source.status === "error") return `${affected}: couldn't read its tabs; Lirica will try again.`;
+    return `${members}Recognized music tabs only · access is requested when one plays.`;
+  };
+  const sourceRows = (v.musicSources || []).map((source) => `<div class="pref source-pref" title="${esc(source.bundle)}">
+    <b>${esc(source.name)}</b><div class="ctl"><button type="button" class="tg" role="switch" aria-checked="${!!source.enabled}" aria-label="Use ${esc(source.name)}" data-source="${esc(source.bundle)}"></button></div>
+    <small class="${source.status === "ready" ? "ready" : source.status === "denied" || source.status === "error" ? "warn" : ""}">${esc(sourceNote(source))}</small></div>`).join("");
+  const siteRows = (v.musicSites || []).map((site) => `<div class="pref source-pref" title="${esc(site.host)}">
+    <b>${esc(site.name)}</b><div class="ctl"><button type="button" class="tg" role="switch" aria-checked="${!!site.enabled}" aria-label="Use ${esc(site.name)}" data-site="${esc(site.host)}"></button></div>
+    <small>${site.recognized ? "Music website" : "Detected website · off until you allow it"} · ${esc(site.host)}</small></div>`).join("");
+  const sourceList = (note, rows, action = "") => `<div class="source-list"><div class="source-head"><small>${note}</small>${action}</div>${rows || `<div class="source-empty">Nothing detected yet.</div>`}</div>`;
+  const browserDenied = (v.musicSources || []).some((source) => source.kind === "browser" && source.status === "denied");
   const sharing = v.sharingNow ? { text: `${v.sharingNow} is sharing your screen, so lyrics are hidden.`, live: true }
     : v.canReadTitles ? "Notices Zoom, Google Meet, Teams, Slack, Discord, FaceTime, Webex and Screen Sharing."
     : "Notices Zoom, Teams and Screen Sharing. Sharing from a browser needs Screen Recording permission.";
@@ -1061,12 +1081,21 @@ function renderSettings() {
       row("Hide lyrics while screen sharing", sharing, tg("hideWhileSharing", "Hide lyrics while screen sharing"),
         v.hideWhileSharing && !v.canReadTitles ? btn("requestScreenRecording", "Detect browsers too…") : ""),
     ]),
-    card("Music data", [
-      row("Weather", "Uses your approximate location and Open-Meteo, for Weather & Time and other templates.", tg("useWeather", "Weather")),
-      row("Default music player", "Lirica follows this player when it starts playing, and switches to whatever plays after an hour of silence. When YouTube Music is the default, browser playback counts as YouTube Music. Clicking controls never switches players.",
+    card("Music sources", [
+      row("Default music player", "Lirica follows this player when it starts playing, and switches to whatever plays after an hour of silence. Clicking controls never switches players.",
         seg("musicPriority", [["spotify", "Spotify"], ["appleMusic", "Apple Music"], ["youtubeMusic", "YouTube Music"], ["other", "Other Apps"]])),
-      row("Other players", "Browsers, YouTube and any app on the Mac's Now Playing feed. Uses a helper that a macOS update may stop supporting.", tg("otherPlayers", "Other players")),
+      row("Other music apps", "Uses macOS Now Playing for browsers and players besides Spotify and Apple Music. A future macOS update could stop this private feed from working.", tg("otherPlayers", "Other music apps")),
+    ]),
+    card("Applications", [
+      sourceList("Choose which apps may become the wallpaper's source. Unknown apps start off.", sourceRows,
+        browserDenied ? btn("openAutomation", "Open Automation settings") : ""),
+    ]),
+    card("Browser music websites", [
+      sourceList("Lirica matches Now Playing to tab titles and reads only the matching hostname. Full addresses and tab titles are never saved.", siteRows),
+    ]),
+    card("Wallpaper data &amp; controls", [
       row("Wallpaper controls", "Controls stay on the desktop and never cover or activate your application windows.", tg("wallpaperControls", "Wallpaper controls")),
+      row("Weather", "Uses your approximate location and Open-Meteo, for Weather & Time and other templates.", tg("useWeather", "Weather")),
       row("Sync to the beat", "Analyses Spotify's sound live so templates can move with the music. Nothing is recorded. Needs Screen Recording permission.", tg("beatSync", "Sync to the beat")),
     ]),
     card("Lyric cards", [
@@ -1094,11 +1123,24 @@ function renderSettings() {
   $("prefs").querySelectorAll(".seg").forEach(wireSeg);
 }
 $("prefs").addEventListener("click", (e) => {
-  const t = e.target.closest("[data-set]"), sg = e.target.closest("[data-seg] > button"), a = e.target.closest("[data-act]");
+  const t = e.target.closest("[data-set]"), source = e.target.closest("[data-source]"), site = e.target.closest("[data-site]"),
+    sg = e.target.closest("[data-seg] > button"), a = e.target.closest("[data-act]");
   if (t) {
     const on = t.getAttribute("aria-checked") !== "true";
     t.setAttribute("aria-checked", on); S.settings[t.dataset.set] = on;
     post({ type: "setting", key: t.dataset.set, value: on });
+  } else if (source) {
+    const enabled = source.getAttribute("aria-checked") !== "true";
+    source.setAttribute("aria-checked", enabled);
+    const item = (S.settings.musicSources || []).find((s) => s.bundle === source.dataset.source);
+    if (item) item.enabled = enabled;
+    post({ type: "setting", key: "musicSource", value: { bundle: source.dataset.source, enabled } });
+  } else if (site) {
+    const enabled = site.getAttribute("aria-checked") !== "true";
+    site.setAttribute("aria-checked", enabled);
+    const item = (S.settings.musicSites || []).find((s) => s.host === site.dataset.site);
+    if (item) item.enabled = enabled;
+    post({ type: "setting", key: "musicSite", value: { host: site.dataset.site, enabled } });
   } else if (sg) {
     const key = sg.parentElement.dataset.seg, raw = sg.dataset.val, val = key === "refreshRate" ? +raw : raw;
     S.settings[key] = val; setSeg(sg.parentElement, (b) => b === sg);

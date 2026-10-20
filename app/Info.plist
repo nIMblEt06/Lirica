@@ -30,7 +30,7 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.7.0</string>
+	<string>1.7.3</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -49,7 +49,7 @@
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSAppleEventsUsageDescription</key>
-	<string>Lirica reads what's playing in Spotify or Music and controls playback when you use the controls on your wallpaper, so it can draw the song onto your desktop.</string>
+	<string>Lirica reads what's playing in music apps, and reads browser tab titles and addresses to recognize approved music sites. It also controls playback when you use wallpaper controls.</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSLocationUsageDescription</key>

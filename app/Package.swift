@@ -19,5 +19,10 @@ let package = Package(
             path: "Sources/MediaRemoteBridge",
             linkerSettings: [.linkedFramework("AppKit")]
         ),
+        .testTarget(
+            name: "SpotifyWallpaperTests",
+            dependencies: ["SpotifyWallpaper"],
+            path: "Tests/SpotifyWallpaperTests"
+        ),
     ]
 )

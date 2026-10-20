@@ -51,6 +51,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         engine.onStateChange = { [weak self] in self?.home?.pushState(); self?.builder?.pushState() }
         engine.onClock = { [weak self] clock in self?.home?.pushClock(clock); self?.builder?.pushClock(clock) }
         engine.onTemplateFilesChanged = { [weak self] in self?.thumbs.invalidateAll(); self?.home?.templateFilesChanged() }
+        engine.onMusicSourcesChanged = { [weak self] in self?.home?.pushState() }
         setUpAppFeatures()
         engine.start()
         updater.start()
@@ -338,6 +339,8 @@ extension AppDelegate {
             "beatSync": engine.beatSync,
             "musicPriority": MusicProvider.defaultProvider.rawValue,
             "otherPlayers": engine.otherPlayersEnabled,
+            "musicSources": MusicSourcePolicy.applicationSettings(),
+            "musicSites": MusicSourcePolicy.siteSettings(),
             "wallpaperControls": engine.controlsEnabled,
             "shareFormat": shareCard.format.rawValue,
             "keepHistory": history.enabled,
@@ -360,6 +363,18 @@ extension AppDelegate {
         case "beatSync": engine.beatSync = on
         case "musicPriority": if let raw = value as? String, let p = MusicProvider(rawValue: raw) { MusicProvider.defaultProvider = p }
         case "otherPlayers": engine.otherPlayersEnabled = on
+        case "musicSource":
+            if let item = value as? [String: Any], let bundle = item["bundle"] as? String,
+               let enabled = item["enabled"] as? Bool {
+                MusicSourcePolicy.setApplicationAllowed(enabled, bundle: bundle)
+                engine.musicSourcesChanged()
+            }
+        case "musicSite":
+            if let item = value as? [String: Any], let host = item["host"] as? String,
+               let enabled = item["enabled"] as? Bool {
+                MusicSourcePolicy.setSiteAllowed(enabled, rule: host)
+                engine.musicSourcesChanged()
+            }
         case "wallpaperControls": engine.controlsEnabled = on
         case "shareFormat": if let raw = value as? String, let f = ShareCard.Format(rawValue: raw) { shareCard.format = f }
         case "keepHistory": history.enabled = on
@@ -378,6 +393,8 @@ extension AppDelegate {
         case "openHistory": openHistory()
         case "clearHistory": clearHistory()
         case "openTemplatesFolder": openTemplatesFolder()
+        case "openAutomation":
+            NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation")!)
         case "openBuilder": newBuilderTemplate()
         case "checkUpdates": checkForUpdates()
         case "whatsNew": openWhatsNew()

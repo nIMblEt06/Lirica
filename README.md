@@ -71,6 +71,11 @@ with sliders or rewrite completely.
   the app's Home window next to a live preview. You can also duplicate a template and edit its HTML/CSS directly; it
   reloads as you save.
 - **No login or API key.** It reads Spotify and Apple Music directly, and other players from macOS Now Playing.
+- **Only music takes over.** Choose the applications Lirica may follow in Settings. For Safari, Arc, Chrome and other
+  scriptable Chromium browsers, Lirica locally matches Now Playing metadata to tab titles and addresses, then accepts
+  only enabled music websites. YouTube Music can play while X, regular YouTube and ambiguous tabs are ignored. No
+  browser extension, Accessibility permission, audio capture or page-content access is used; full addresses and tab
+  titles are never saved. Arc, Chrome, Brave, Edge, Vivaldi, Opera and Chromium share one **Chromium browsers** switch.
 - **Controls on the wallpaper itself:** templates can put real controls on your desktop — click play/pause and
   skip, drag a progress bar to seek, and in Classic scroll the iPod's click wheel for the volume. Clicks reach the
   page only while the pointer is over a control, so icons, right-clicks and drags on the rest of the desktop behave
@@ -89,10 +94,13 @@ See what changed in each version in the **[changelog](CHANGELOG.md)**, or in the
    xattr -dr com.apple.quarantine "/Applications/Lirica.app"
    ```
 4. When macOS asks whether Lirica may **control Spotify** (and later **Music**, if you use Apple Music), click
-   **OK**. That's how it reads what's playing — and how the controls on your wallpaper talk to the player.
+   **OK**. That's how it reads what's playing — and how the controls on your wallpaper talk to the player. If you play
+   music in a browser, macOS separately asks whether Lirica may control that browser; this lets it read tab titles and
+   addresses to identify the music site without an extension.
 
 Requires macOS 14 Sonoma or later. Spotify and Apple Music work directly; browsers, YouTube Music and other
-players work through the Mac's Now Playing feed. Lirica runs natively on Apple Silicon and Intel.
+players use the Mac's Now Playing feed. Tab-level browser filtering supports Safari and scriptable Chromium browsers;
+unsupported browsers are shown in Settings but ignored rather than guessed. Lirica runs natively on Apple Silicon and Intel.
 
 **Updates install themselves** from v1.2.0 on. The app checks this repo's releases at launch and every 6 hours —
 through the GitHub API when it can, and through the releases page when the anonymous API is rate-limited, as it
@@ -242,8 +250,9 @@ Spotify / Apple Music / per-app Now Playing sessions ──background monitor─
 - Templates are served from a private `sw://` URL scheme, so they load the shared runtime, the cover and system
   fonts without any local server.
 - Now Playing apps are read as independent sessions, so the default player can keep winning when Spotify and a
-  browser are active together. macOS exposes the browser, not its tab, so browser media counts as YouTube Music when
-  **YouTube Music** is selected as the default.
+  browser are active together. macOS exposes the browser, not its tab, so browser music counts as YouTube Music when
+  **YouTube Music** is selected as the default; short, unattributed social clips remain under **Other Apps** and are
+  released as soon as they pause.
 - macOS only sets the wallpaper of the current Space, so the still is re-applied when you switch Spaces. With
   "Show on all Spaces" on, it applies to all of them at once. Each screen alternates between two files, because
   macOS caches wallpapers by path.
