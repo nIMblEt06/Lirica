@@ -125,7 +125,7 @@ final class QuickSwitcher: NSObject, WKScriptMessageHandler, NSWindowDelegate {
         container.addSubview(glass)
 
         let config = engine.makeWebConfiguration()
-        config.userContentController.add(self, name: "app")
+        config.userContentController.add(WeakScriptMessageHandler(self), name: "app")
         let web = WKWebView(frame: rect, configuration: config)
         web.setValue(false, forKey: "drawsBackground")
         web.wantsLayer = true

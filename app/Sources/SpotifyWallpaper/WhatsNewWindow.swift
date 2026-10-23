@@ -23,7 +23,7 @@ final class WhatsNewWindowController: NSWindowController, WKScriptMessageHandler
         window.delegate = self
 
         let config = engine.makeWebConfiguration()
-        config.userContentController.add(self, name: "app")
+        config.userContentController.add(WeakScriptMessageHandler(self), name: "app")
         let container = NSView(frame: window.contentView!.bounds)
         let webView = WKWebView(frame: container.bounds, configuration: config)
         webView.autoresizingMask = [.width, .height]

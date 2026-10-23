@@ -57,7 +57,9 @@ final class HomeWindowController: NSWindowController, WKScriptMessageHandler, NS
 
         // Throttled when hidden; the page also pauses its live preview then (see `visibilityChanged`).
         let config = engine.makeWebConfiguration(throttleWhenHidden: true)
-        config.userContentController.add(self, name: "app")
+        // a weak proxy: the user content controller retains its handlers, so adding `self` would
+        // keep this window (and its web view) alive after it closes
+        config.userContentController.add(WeakScriptMessageHandler(self), name: "app")
         let container = NSView(frame: window.contentView!.bounds)
         webView = WKWebView(frame: container.bounds, configuration: config)
         webView.autoresizingMask = [.width, .height]

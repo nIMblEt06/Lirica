@@ -33,7 +33,8 @@ final class BuilderWindowController: NSWindowController, WKScriptMessageHandler,
         window.delegate = self
 
         let config = engine.makeWebConfiguration()
-        config.userContentController.add(self, name: "app")
+        // see HomeWindow: a weak proxy, or this controller would outlive every `close()`
+        config.userContentController.add(WeakScriptMessageHandler(self), name: "app")
         let container = NSView(frame: window.contentView!.bounds)
         webView = WKWebView(frame: container.bounds, configuration: config)
         webView.autoresizingMask = [.width, .height]
